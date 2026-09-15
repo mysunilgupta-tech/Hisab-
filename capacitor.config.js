@@ -1,7 +1,7 @@
 const config = {
   appId: 'com.hisab.app',
   appName: 'Hisab',
-  webDir: '.',
+  webDir: 'www',
   bundledWebRuntime: false
 };
 
