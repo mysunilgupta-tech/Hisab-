@@ -24,6 +24,13 @@ jobs:
           npm install
           npm install --save-dev typescript
 
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html www/
+          cp app.js www/
+          cp style.css www/
+
       - name: Install Capacitor packages
         run: |
           npm install @capacitor/core@7.4.0
