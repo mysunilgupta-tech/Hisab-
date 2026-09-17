@@ -1,227 +1,1052 @@
+/* =========================================================
+   HISAB — Money Manager
+   Personal • Business • Goals • Paisa Len-Den
+   Offline / Local Storage V1
+========================================================= */
 
-// Guest Mode: no login/account required. Data stays on this device via localStorage.
-const HISAB_GUEST_KEY = 'hisabGuestMode';
-function enterGuestMode(){
-  localStorage.setItem(HISAB_GUEST_KEY, 'true');
-  document.getElementById('guestGate')?.classList.add('hidden');
-  document.getElementById('appShell')?.classList.remove('hidden');
-}
-function showGuestGate(){
-  const gate = document.getElementById('guestGate');
-  const shell = document.getElementById('appShell');
-  if(localStorage.getItem(HISAB_GUEST_KEY)==='true'){
-    gate?.classList.add('hidden');
-    shell?.classList.remove('hidden');
-  }else{
-    gate?.classList.remove('hidden');
-    shell?.classList.add('hidden');
+const HISAB_KEY = "hisab_money_manager_v1";
+
+const defaultData = {
+  mode: "Personal",
+
+  transactions: [],
+  lendings: [],
+  goals: [],
+  budgets: [],
+  bills: [],
+  loans: [],
+
+  settings: {
+    currency: "₹",
+    language: "English"
+  }
+};
+
+let data = loadData();
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(HISAB_KEY);
+    return saved ? { ...defaultData, ...JSON.parse(saved) } : structuredClone(defaultData);
+  } catch (e) {
+    return structuredClone(defaultData);
   }
 }
-function resetGuestMode(){
-  if(confirm('Guest mode reset karne par sirf is device ki local app data delete hogi. Continue?')){
-    localStorage.clear();
-    location.reload();
+
+function saveData() {
+  localStorage.setItem(HISAB_KEY, JSON.stringify(data));
+  updateDashboard();
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function money(amount) {
+  return `${data.settings.currency}${Number(amount || 0).toLocaleString("en-IN")}`;
+}
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function id() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function getEl(id) {
+  return document.getElementById(id);
+}
+
+function safeText(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* =========================================================
+   MODE
+========================================================= */
+
+function setMode(mode) {
+  data.mode = mode;
+  saveData();
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.classList.toggle(
+      "active",
+      btn.dataset.mode === mode
+    );
+  });
+
+  showToast(`${mode} mode selected`);
+}
+
+window.setMode = setMode;
+
+/* =========================================================
+   TRANSACTIONS
+========================================================= */
+
+function addTransaction(type, amount, note = "", date = today()) {
+  amount = Number(amount);
+
+  if (!amount || amount <= 0) {
+    showToast("Enter a valid amount");
+    return false;
+  }
+
+  data.transactions.push({
+    id: id(),
+    type,
+    amount,
+    note,
+    date,
+    mode: data.mode,
+    createdAt: new Date().toISOString()
+  });
+
+  saveData();
+  return true;
+}
+
+function addIncome(amount, note, date) {
+  if (addTransaction("income", amount, note, date)) {
+    showToast("Income added");
+    renderTransactions();
   }
 }
 
-let data=JSON.parse(localStorage.getItem('hisabData')||'{"business":[],"personal":[]}');
-function save(){localStorage.setItem('hisabData',JSON.stringify(data));render()}
-function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');render()}
-function money(n){return '₹'+Math.abs(n).toLocaleString('en-IN')}
-function addPerson(type){
- const name=prompt(type==='business'?'Customer ka naam':'Dost/Rishtedar ka naam'); if(!name)return;
- data[type].push({name,transactions:[]}); save();
-}
-function addTxn(type,i,kind){
- const amount=Number(prompt(kind==='given'?'Kitna paisa diya?':'Kitna paisa mila?'));
- if(!Number.isFinite(amount)||amount<=0)return;
- const note=prompt('Note (optional)')||'';
- data[type][i].transactions.push({kind,amount,note,date:new Date().toLocaleDateString('en-IN')});
- save();
-}
-function renderList(type,id){
- const el=document.getElementById(id); el.innerHTML='';
- data[type].forEach((p,i)=>{
-   let bal=p.transactions.reduce((s,t)=>s+(t.kind==='given'?t.amount:-t.amount),0);
-   const hist=p.transactions.slice(-5).reverse().map(t=>`<div class="muted">${t.date} — ${t.kind==='given'?'दिया':'मिला'} ${money(t.amount)} ${t.note?'· '+t.note:''}</div>`).join('');
-   el.innerHTML+=`<div class="person"><h3>${p.name}</h3><div class="balance">${bal>0?'लेना है: '+money(bal):bal<0?'देना है: '+money(bal):'हिसाब बराबर'}</div>
-   <button onclick="addTxn('${type}',${i},'given')">💸 पैसा दिया</button><button onclick="addTxn('${type}',${i},'received')">💰 पैसा मिला</button>
-   ${hist?'<hr>'+hist:''}</div>`;
- });
-}
-function render(){
- renderList('business','businessList'); renderList('personal','personalList');
- let rec=0,pay=0;
- [...data.business,...data.personal].forEach(p=>p.transactions.forEach(t=>t.kind==='given'?rec+=t.amount:pay+=t.amount));
- document.getElementById('receivable').textContent=money(Math.max(0,rec-pay));
- document.getElementById('payable').textContent=money(Math.max(0,pay-rec));
-}
-render();
-
-function calcBudget(){
- const income=Number(document.getElementById('mIncome').value)||0;
- const budget=Number(document.getElementById('mBudget').value)||0;
- const target=Number(document.getElementById('mSaving').value)||0;
- const after=income-budget;
- const ok=after>=target;
- document.getElementById('budgetResult').innerHTML=`<b>Monthly result</b><br>Income: ₹${income.toLocaleString('en-IN')}<br>Home budget: ₹${budget.toLocaleString('en-IN')}<br>Available after budget: ₹${after.toLocaleString('en-IN')}<br>Saving target: ₹${target.toLocaleString('en-IN')}<br><strong>${ok?'✅ Target possible':'⚠️ Target needs a lower budget or higher income'}</strong>`;
-}
-function calcGoal(){
- const name=document.getElementById('gName').value||'Goal';
- const target=Number(document.getElementById('gTarget').value)||0;
- const current=Number(document.getElementById('gCurrent').value)||0;
- const monthly=Number(document.getElementById('gMonthly').value)||0;
- const remain=Math.max(0,target-current);
- const months=monthly>0?Math.ceil(remain/monthly):0;
- const pct=target>0?Math.min(100,(current/target)*100):0;
- document.getElementById('goalResult').innerHTML=`<b>${name}</b><br>Target: ₹${target.toLocaleString('en-IN')}<br>Saved: ₹${current.toLocaleString('en-IN')}<br>Remaining: ₹${remain.toLocaleString('en-IN')}<br>Monthly saving: ₹${monthly.toLocaleString('en-IN')}<br>Progress: ${pct.toFixed(0)}%<br><strong>${monthly>0?`लगभग ${months} महीने बाकी`:'Monthly saving amount enter करें'}</strong>`;
+function addExpense(amount, note, date) {
+  if (addTransaction("expense", amount, note, date)) {
+    showToast("Expense added");
+    renderTransactions();
+  }
 }
 
-let bills=JSON.parse(localStorage.getItem('hisabBills')||'[]');
-function calcEMI(){
- const P=Number(document.getElementById('loan').value)||0;
- const annual=Number(document.getElementById('rate').value)||0;
- const n=Number(document.getElementById('tenure').value)||0;
- const r=annual/12/100;
- let emi=0;
- if(P>0&&n>0) emi=r?P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):P/n;
- const total=emi*n, interest=Math.max(0,total-P);
- document.getElementById('emiResult').innerHTML=`<b>Estimated EMI: ₹${emi.toFixed(0).toLocaleString('en-IN')}</b><br>Total payment: ₹${total.toFixed(0).toLocaleString('en-IN')}<br>Total interest: ₹${interest.toFixed(0).toLocaleString('en-IN')}`;
-}
-function addBill(forceName){
- const name=forceName||document.getElementById('billName').value||'Bill';
- const amount=forceName?(Number(document.getElementById('cardBill').value)||0):(Number(document.getElementById('billAmount').value)||0);
- const due=forceName?document.getElementById('cardDue').value:document.getElementById('billDue').value;
- if(!amount||!due){alert('Amount aur due date enter karein');return}
- bills.push({name,amount,due,paid:false});localStorage.setItem('hisabBills',JSON.stringify(bills));renderBills();
-}
-function toggleBill(i){bills[i].paid=!bills[i].paid;localStorage.setItem('hisabBills',JSON.stringify(bills));renderBills()}
-function renderBills(){
- const el=document.getElementById('billList'); if(!el)return; el.innerHTML='';
- bills.forEach((b,i)=>{el.innerHTML+=`<div class="person"><b>${b.name}</b><br>₹${b.amount.toLocaleString('en-IN')} · Due: ${b.due}<br><button onclick="toggleBill(${i})">${b.paid?'✅ Paid':'⏳ Mark Paid'}</button></div>`})
-}
-renderBills();
+function deleteTransaction(transactionId) {
+  data.transactions = data.transactions.filter(
+    item => item.id !== transactionId
+  );
 
-let ins=JSON.parse(localStorage.getItem('hisabInsurance')||'[]');
-let schools=JSON.parse(localStorage.getItem('hisabSchools')||'[]');
-let vehicles=JSON.parse(localStorage.getItem('hisabVehicles')||'[]');
-function calcFD(){
- const p=Number(document.getElementById('fdP').value)||0, r=Number(document.getElementById('fdR').value)||0, n=Number(document.getElementById('fdN').value)||0;
- const maturity=p*Math.pow(1+r/400,n/3);
- document.getElementById('fdResult').innerHTML=`<b>Estimated maturity: ₹${maturity.toFixed(0).toLocaleString('en-IN')}</b><br>Principal: ₹${p.toLocaleString('en-IN')}<br>Estimated interest: ₹${Math.max(0,maturity-p).toFixed(0).toLocaleString('en-IN')}`;
+  saveData();
+  renderTransactions();
+  showToast("Transaction deleted");
 }
-function addInsurance(){const name=document.getElementById('insName').value||'Insurance';const premium=Number(document.getElementById('insPremium').value)||0;const date=document.getElementById('insDate').value;if(!premium||!date)return alert('Premium aur renewal date enter karein');ins.push({name,premium,date});localStorage.setItem('hisabInsurance',JSON.stringify(ins));renderFamily()}
-function addSchool(){const child=document.getElementById('child').value||'Child';const fee=Number(document.getElementById('schoolFee').value)||0;const due=document.getElementById('schoolDue').value;const books=Number(document.getElementById('schoolBooks').value)||0;if(!fee||!due)return alert('Fee aur due date enter karein');schools.push({child,fee,due,books});localStorage.setItem('hisabSchools',JSON.stringify(schools));renderFamily()}
-function addVehicle(){const vehicle=document.getElementById('vehicle').value||'Vehicle';const fuel=Number(document.getElementById('fuel').value)||0;const service=document.getElementById('service').value;const vehicleIns=document.getElementById('vehicleIns').value;const puc=document.getElementById('puc').value;vehicles.push({vehicle,fuel,service,vehicleIns,puc});localStorage.setItem('hisabVehicles',JSON.stringify(vehicles));renderFamily()}
-function renderFamily(){
- let e=document.getElementById('insList');if(e)e.innerHTML=ins.map(x=>`<div class="person"><b>${x.name}</b><br>Premium: ₹${x.premium.toLocaleString('en-IN')} · Renewal: ${x.date}</div>`).join('');
- e=document.getElementById('schoolList');if(e)e.innerHTML=schools.map(x=>`<div class="person"><b>${x.child}</b><br>Fee: ₹${x.fee.toLocaleString('en-IN')} · Due: ${x.due}<br>Books/Uniform budget: ₹${x.books.toLocaleString('en-IN')}</div>`).join('');
- e=document.getElementById('vehicleList');if(e)e.innerHTML=vehicles.map(x=>`<div class="person"><b>${x.vehicle}</b><br>Fuel budget: ₹${x.fuel.toLocaleString('en-IN')}/month<br>Service: ${x.service||'-'} · Insurance: ${x.vehicleIns||'-'} · PUC: ${x.puc||'-'}</div>`).join('');
-}
-renderFamily();
 
-let transactions=JSON.parse(localStorage.getItem('hisabTransactions')||'[]');
-function addTransaction(){
- const type=document.getElementById('txType').value, amount=Number(document.getElementById('txAmount').value)||0;
- const category=document.getElementById('txCat').value, note=document.getElementById('txNote').value||'';
- if(amount<=0)return alert('Amount enter karein');
- transactions.push({type,amount,category,note,date:new Date().toLocaleDateString('en-IN')});
- localStorage.setItem('hisabTransactions',JSON.stringify(transactions));renderReports();
-}
-function renderReports(){
- const income=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
- const expense=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
- document.getElementById('rIncome').textContent='₹'+income.toLocaleString('en-IN');
- document.getElementById('rExpense').textContent='₹'+expense.toLocaleString('en-IN');
- document.getElementById('rSaving').textContent='₹'+(income-expense).toLocaleString('en-IN');
- document.getElementById('rCount').textContent=transactions.length;
- const cats={}; transactions.filter(t=>t.type==='expense').forEach(t=>cats[t.category]=(cats[t.category]||0)+t.amount);
- const cs=document.getElementById('catSummary');cs.innerHTML='';
- Object.entries(cats).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>cs.innerHTML+=`<div class="person"><b>${k}</b><br>₹${v.toLocaleString('en-IN')}</div>`);
- const tl=document.getElementById('txList');tl.innerHTML='';
- transactions.slice(-20).reverse().forEach((t,i)=>tl.innerHTML+=`<div class="person"><b>${t.type==='income'?'➕ Income':'➖ Expense'}</b> · ${t.category}<br>₹${t.amount.toLocaleString('en-IN')} · ${t.date}<br>${t.note||''}</div>`);
-}
-renderReports();
+window.addIncome = addIncome;
+window.addExpense = addExpense;
+window.deleteTransaction = deleteTransaction;
 
-let reminders=JSON.parse(localStorage.getItem('hisabReminders')||'[]');
-function addReminder(){
- const name=document.getElementById('remName').value||'Reminder',type=document.getElementById('remType').value,date=document.getElementById('remDate').value,amount=Number(document.getElementById('remAmount').value)||0,note=document.getElementById('remNote').value||'';
- if(!date)return alert('Due date enter karein');
- reminders.push({name,type,date,amount,note,done:false});
- localStorage.setItem('hisabReminders',JSON.stringify(reminders));renderReminders();
-}
-function toggleReminder(i){reminders[i].done=!reminders[i].done;localStorage.setItem('hisabReminders',JSON.stringify(reminders));renderReminders()}
-function deleteReminder(i){reminders.splice(i,1);localStorage.setItem('hisabReminders',JSON.stringify(reminders));renderReminders()}
-function renderReminders(){
- const s=document.getElementById('remSummary'); if(!s)return;
- const pending=reminders.filter(x=>!x.done).length, today=new Date().toISOString().slice(0,10);
- const due=reminders.filter(x=>!x.done&&x.date<=today).length;
- s.innerHTML=`<b>Pending: ${pending}</b><br>Due today/overdue: ${due}`;
- const el=document.getElementById('remList');el.innerHTML='';
- reminders.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach((r,i)=>{
-  el.innerHTML+=`<div class="person"><b>${r.done?'✅':'🔔'} ${r.name}</b><br>${r.type} · Due: ${r.date}${r.amount?'<br>₹'+r.amount.toLocaleString('en-IN'):''}${r.note?'<br>'+r.note:''}<br><button onclick="toggleReminder(${i})">${r.done?'Mark Pending':'Mark Done'}</button> <button onclick="deleteReminder(${i})">Delete</button></div>`
- })
-}
-renderReminders();
+/* =========================================================
+   PAISA LEN-DEN
+========================================================= */
 
-function allHisabData(){return {data,bills,transactions,ins,schools,vehicles,reminders,exportedAt:new Date().toISOString()}}
-function downloadFile(name,text,type){const blob=new Blob([text],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-function exportBackup(){downloadFile('hisab-backup.json',JSON.stringify(allHisabData(),null,2),'application/json')}
-function importBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(x.data)data=x.data;if(x.bills)bills=x.bills;if(x.transactions)transactions=x.transactions;if(x.ins)ins=x.ins;if(x.schools)schools=x.schools;if(x.vehicles)vehicles=x.vehicles;if(x.reminders)reminders=x.reminders;localStorage.setItem('hisabData',JSON.stringify(data));localStorage.setItem('hisabBills',JSON.stringify(bills));localStorage.setItem('hisabTransactions',JSON.stringify(transactions));localStorage.setItem('hisabInsurance',JSON.stringify(ins));localStorage.setItem('hisabSchools',JSON.stringify(schools));localStorage.setItem('hisabVehicles',JSON.stringify(vehicles));localStorage.setItem('hisabReminders',JSON.stringify(reminders));render();renderReports();renderFamily();renderReminders();alert('Backup restored')}catch(e){alert('Invalid backup file')}};r.readAsText(f)}
-function exportSummary(){const x=allHisabData();downloadFile('hisab-summary.txt',`HISAB SUMMARY\nExported: ${x.exportedAt}\n\nTransactions: ${transactions.length}\nBills: ${bills.length}\nBusiness Khata: ${data.business.length}\nPersonal Udhaar: ${data.personal.length}\nInsurance: ${ins.length}\nSchool Plans: ${schools.length}\nVehicles: ${vehicles.length}\nReminders: ${reminders.length}\n`,'text/plain')}
-function setPin(){const p=prompt('4-6 digit PIN set karein');if(!/^\d{4,6}$/.test(p||''))return alert('PIN 4-6 digits ka hona chahiye');localStorage.setItem('hisabPin',p);alert('PIN saved')}
-function lockApp(){const pin=localStorage.getItem('hisabPin');if(!pin)return alert('Pehle PIN set karein');document.body.innerHTML='<div style="max-width:360px;margin:80px auto;padding:20px;text-align:center;font-family:system-ui"><h2>🔒 Hisab Locked</h2><input id="unlock" type="password" inputmode="numeric" placeholder="PIN" style="padding:12px;width:100%;box-sizing:border-box"><button onclick="unlockApp()" style="margin-top:10px;padding:12px;width:100%">Unlock</button></div>'}
-window.unlockApp=function(){const pin=localStorage.getItem('hisabPin');if(document.getElementById('unlock').value===pin)location.reload();else alert('Wrong PIN')}
+function addLending(type, person, amount, note = "", dueDate = "") {
+  amount = Number(amount);
 
-let familyMembers=JSON.parse(localStorage.getItem('hisabFamilyMembers')||'[]');
-let shopping=JSON.parse(localStorage.getItem('hisabShopping')||'[]');
-let utilities=JSON.parse(localStorage.getItem('hisabUtilities')||'[]');
-function addFamilyMember(){const name=document.getElementById('fmName').value.trim();if(!name)return;familyMembers.push({name});localStorage.setItem('hisabFamilyMembers',JSON.stringify(familyMembers));renderFamilyTools()}
-function addShopping(){const item=document.getElementById('shopItem').value.trim(),budget=Number(document.getElementById('shopBudget').value)||0;if(!item||!budget)return;shopping.push({item,budget,bought:false});localStorage.setItem('hisabShopping',JSON.stringify(shopping));renderFamilyTools()}
-function toggleShopping(i){shopping[i].bought=!shopping[i].bought;localStorage.setItem('hisabShopping',JSON.stringify(shopping));renderFamilyTools()}
-function addUtility(){const name=document.getElementById('utilityName').value,amount=Number(document.getElementById('utilityAmount').value)||0,month=document.getElementById('utilityMonth').value;if(!amount||!month)return;utilities.push({name,amount,month});localStorage.setItem('hisabUtilities',JSON.stringify(utilities));renderFamilyTools()}
-function renderFamilyTools(){
- let e=document.getElementById('fmList');if(e)e.innerHTML=familyMembers.map(x=>`<span class="person" style="display:inline-block">${x.name}</span>`).join('');
- e=document.getElementById('shopList');if(e)e.innerHTML=shopping.map((x,i)=>`<div class="person">${x.bought?'✅':'🛒'} <b>${x.item}</b> · ₹${x.budget.toLocaleString('en-IN')}<br><button onclick="toggleShopping(${i})">${x.bought?'Mark Pending':'Mark Bought'}</button></div>`).join('');
- e=document.getElementById('utilityList');if(e)e.innerHTML=utilities.slice().reverse().map(x=>`<div class="person"><b>${x.name}</b> · ${x.month}<br>₹${x.amount.toLocaleString('en-IN')}</div>`).join('');
-}
-function renderComparison(){
- const now=new Date(), cur=now.getMonth(), year=now.getFullYear();
- const totals={curI:0,curE:0,prevI:0,prevE:0};
- transactions.forEach(t=>{const d=new Date();const parts=t.date.split('/');if(parts.length===3){const m=Number(parts[1])-1,y=Number(parts[2]);if(y===year&&m===cur){t.type==='income'?totals.curI+=t.amount:totals.curE+=t.amount}else if(y===year&&(m===cur-1||(cur===0&&m===11&&y===year-1))){t.type==='income'?totals.prevI+=t.amount:totals.prevE+=t.amount}}});
- document.getElementById('compareResult').innerHTML=`Current month: Income ₹${totals.curI.toLocaleString('en-IN')}, Expense ₹${totals.curE.toLocaleString('en-IN')}<br>Previous month: Income ₹${totals.prevI.toLocaleString('en-IN')}, Expense ₹${totals.prevE.toLocaleString('en-IN')}<br><b>Expense change: ₹${(totals.curE-totals.prevE).toLocaleString('en-IN')}</b>`;
-}
-function calcEmergency(){
- const expense=Number(document.getElementById('emExpense').value)||0, months=Number(document.getElementById('emMonths').value)||0,current=Number(document.getElementById('emCurrent').value)||0;
- const target=expense*months, remain=Math.max(0,target-current),pct=target?Math.min(100,current/target*100):0;
- document.getElementById('emResult').innerHTML=`<div class="person"><b>Emergency Fund Target: ₹${target.toLocaleString('en-IN')}</b><br>Current: ₹${current.toLocaleString('en-IN')}<br>Remaining: ₹${remain.toLocaleString('en-IN')}<br>Progress: ${pct.toFixed(0)}%</div>`;
-}
-renderFamilyTools();
+  if (!person.trim()) {
+    showToast("Enter person's name");
+    return false;
+  }
 
-let docs=JSON.parse(localStorage.getItem('hisabDocs')||'[]');
-let annualPlans=JSON.parse(localStorage.getItem('hisabAnnualPlans')||'[]');
-let limits=JSON.parse(localStorage.getItem('hisabLimits')||'{}');
-function addDoc(){const name=document.getElementById('docName').value.trim();const date=document.getElementById('docDate').value;if(!name)return;docs.push({name,date});localStorage.setItem('hisabDocs',JSON.stringify(docs));renderTools13()}
-function addAnnual(){const name=document.getElementById('annualName').value.trim(),amount=Number(document.getElementById('annualAmount').value)||0,month=document.getElementById('annualMonth').value;if(!name||!amount||!month)return;annualPlans.push({name,amount,month});localStorage.setItem('hisabAnnualPlans',JSON.stringify(annualPlans));renderTools13()}
-function saveLimit(){const cat=document.getElementById('limitCat').value,amount=Number(document.getElementById('limitAmount').value)||0;if(!amount)return;limits[cat]=amount;localStorage.setItem('hisabLimits',JSON.stringify(limits));renderTools13()}
-function renderTools13(){
- let e=document.getElementById('docList');if(e)e.innerHTML=docs.map(x=>`<div class="person"><b>📄 ${x.name}</b><br>${x.date?'Expiry: '+x.date:'No expiry date'}</div>`).join('');
- e=document.getElementById('annualList');if(e)e.innerHTML=annualPlans.slice().sort((a,b)=>a.month.localeCompare(b.month)).map(x=>`<div class="person"><b>${x.name}</b><br>₹${x.amount.toLocaleString('en-IN')} · ${x.month}</div>`).join('');
- e=document.getElementById('limitList');if(e)e.innerHTML=Object.entries(limits).map(([k,v])=>`<div class="person"><b>${k}</b><br>Monthly limit: ₹${v.toLocaleString('en-IN')}</div>`).join('');
+  if (!amount || amount <= 0) {
+    showToast("Enter a valid amount");
+    return false;
+  }
+
+  data.lendings.push({
+    id: id(),
+    type,
+    person,
+    amount,
+    note,
+    dueDate,
+    date: today(),
+    mode: data.mode,
+    status: "pending"
+  });
+
+  saveData();
+  renderLendings();
+
+  showToast(
+    type === "given"
+      ? "Money Given added"
+      : "Money Received added"
+  );
+
+  return true;
 }
-function searchAllData(){
- const q=(document.getElementById('searchAll').value||'').toLowerCase().trim(),el=document.getElementById('searchResults');if(!q){el.innerHTML='';return}
- const out=[];
- data.business.forEach(p=>{if(p.name.toLowerCase().includes(q))out.push('📒 Business Khata: '+p.name)});
- data.personal.forEach(p=>{if(p.name.toLowerCase().includes(q))out.push('🤝 Personal Udhaar: '+p.name)});
-transactions.forEach(t=>{if((t.category+' '+t.note).toLowerCase().includes(q))out.push('💰 '+t.category+' ₹'+t.amount)});
-bills.forEach(b=>{if(b.name.toLowerCase().includes(q))out.push('🧾 Bill: '+b.name)});
-reminders.forEach(r=>{if((r.name+' '+r.type).toLowerCase().includes(q))out.push('🔔 Reminder: '+r.name)});
-el.innerHTML=out.length?out.map(x=>`<div class="person">${x}</div>`).join(''):'<div class="person">No result</div>';
+
+function markLendingPaid(lendingId) {
+  const item = data.lendings.find(x => x.id === lendingId);
+
+  if (!item) return;
+
+  item.status = item.status === "paid" ? "pending" : "paid";
+
+  saveData();
+  renderLendings();
 }
-function shareHisab(){
- const income=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),expense=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
- const text=`Hisab Summary\nIncome: ₹${income.toLocaleString('en-IN')}\nExpense: ₹${expense.toLocaleString('en-IN')}\nSaving: ₹${(income-expense).toLocaleString('en-IN')}\nBusiness Khata: ${data.business.length}\nPersonal Udhaar: ${data.personal.length}`;
- if(navigator.share) navigator.share({title:'Hisab Summary',text}); else navigator.clipboard?.writeText(text).then(()=>alert('Summary copied')).catch(()=>alert(text));
+
+function deleteLending(lendingId) {
+  data.lendings = data.lendings.filter(
+    item => item.id !== lendingId
+  );
+
+  saveData();
+  renderLendings();
 }
-renderTools13();
+
+window.addLending = addLending;
+window.markLendingPaid = markLendingPaid;
+window.deleteLending = deleteLending;
+
+/* =========================================================
+   GOALS
+========================================================= */
+
+function addGoal(name, target, saved = 0, deadline = "") {
+  target = Number(target);
+  saved = Number(saved || 0);
+
+  if (!name.trim() || target <= 0) {
+    showToast("Enter goal name and target");
+    return;
+  }
+
+  data.goals.push({
+    id: id(),
+    name,
+    target,
+    saved,
+    deadline,
+    createdAt: today()
+  });
+
+  saveData();
+  renderGoals();
+  showToast("Goal created");
+}
+
+function addGoalSaving(goalId, amount) {
+  const goal = data.goals.find(x => x.id === goalId);
+  amount = Number(amount);
+
+  if (!goal || amount <= 0) return;
+
+  goal.saved += amount;
+
+  if (goal.saved > goal.target) {
+    goal.saved = goal.target;
+  }
+
+  saveData();
+  renderGoals();
+  showToast("Goal updated");
+}
+
+function deleteGoal(goalId) {
+  data.goals = data.goals.filter(
+    goal => goal.id !== goalId
+  );
+
+  saveData();
+  renderGoals();
+}
+
+window.addGoal = addGoal;
+window.addGoalSaving = addGoalSaving;
+window.deleteGoal = deleteGoal;
+
+/* =========================================================
+   BUDGET
+========================================================= */
+
+function addBudget(category, amount, month = today().slice(0, 7)) {
+  amount = Number(amount);
+
+  if (!category.trim() || amount <= 0) {
+    showToast("Enter category and budget");
+    return;
+  }
+
+  data.budgets.push({
+    id: id(),
+    category,
+    amount,
+    month
+  });
+
+  saveData();
+  renderBudgets();
+  showToast("Budget added");
+}
+
+function deleteBudget(budgetId) {
+  data.budgets = data.budgets.filter(
+    x => x.id !== budgetId
+  );
+
+  saveData();
+  renderBudgets();
+}
+
+window.addBudget = addBudget;
+window.deleteBudget = deleteBudget;
+
+/* =========================================================
+   BILLS
+========================================================= */
+
+function addBill(name, amount, dueDate, recurring = false) {
+  amount = Number(amount);
+
+  if (!name.trim() || amount <= 0 || !dueDate) {
+    showToast("Enter bill details");
+    return;
+  }
+
+  data.bills.push({
+    id: id(),
+    name,
+    amount,
+    dueDate,
+    recurring,
+    status: "pending"
+  });
+
+  saveData();
+  renderBills();
+  showToast("Bill added");
+}
+
+function markBillPaid(billId) {
+  const bill = data.bills.find(x => x.id === billId);
+
+  if (!bill) return;
+
+  bill.status = bill.status === "paid" ? "pending" : "paid";
+
+  saveData();
+  renderBills();
+}
+
+function deleteBill(billId) {
+  data.bills = data.bills.filter(
+    x => x.id !== billId
+  );
+
+  saveData();
+  renderBills();
+}
+
+window.addBill = addBill;
+window.markBillPaid = markBillPaid;
+window.deleteBill = deleteBill;
+
+/* =========================================================
+   LOANS / EMI
+========================================================= */
+
+function addLoan(name, lender, amount, emi, dueDate, tenure = "") {
+  amount = Number(amount);
+  emi = Number(emi);
+
+  if (!name.trim() || amount <= 0 || emi <= 0) {
+    showToast("Enter loan details");
+    return;
+  }
+
+  data.loans.push({
+    id: id(),
+    name,
+    lender,
+    amount,
+    emi,
+    dueDate,
+    tenure,
+    paidEmis: 0,
+    status: "active"
+  });
+
+  saveData();
+  renderLoans();
+  showToast("Loan / EMI added");
+}
+
+function payEMI(loanId) {
+  const loan = data.loans.find(x => x.id === loanId);
+
+  if (!loan) return;
+
+  loan.paidEmis++;
+
+  saveData();
+  renderLoans();
+  showToast("EMI marked paid");
+}
+
+function deleteLoan(loanId) {
+  data.loans = data.loans.filter(
+    x => x.id !== loanId
+  );
+
+  saveData();
+  renderLoans();
+}
+
+window.addLoan = addLoan;
+window.payEMI = payEMI;
+window.deleteLoan = deleteLoan;
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function getTotals() {
+  const income = data.transactions
+    .filter(x => x.type === "income")
+    .reduce((sum, x) => sum + Number(x.amount), 0);
+
+  const expense = data.transactions
+    .filter(x => x.type === "expense")
+    .reduce((sum, x) => sum + Number(x.amount), 0);
+
+  const given = data.lendings
+    .filter(x => x.type === "given" && x.status === "pending")
+    .reduce((sum, x) => sum + Number(x.amount), 0);
+
+  const received = data.lendings
+    .filter(x => x.type === "received" && x.status === "pending")
+    .reduce((sum, x) => sum + Number(x.amount), 0);
+
+  return {
+    income,
+    expense,
+    balance: income - expense,
+    given,
+    received,
+    lendingBalance: given - received
+  };
+}
+
+function updateDashboard() {
+  const totals = getTotals();
+
+  setText("totalIncome", money(totals.income));
+  setText("totalExpense", money(totals.expense));
+  setText("totalBalance", money(totals.balance));
+  setText("moneyGiven", money(totals.given));
+  setText("moneyReceived", money(totals.received));
+  setText("netLendingBalance", money(totals.lendingBalance));
+
+  const goalSaved = data.goals.reduce(
+    (sum, goal) => sum + Number(goal.saved),
+    0
+  );
+
+  setText("totalGoalSavings", money(goalSaved));
+}
+
+function setText(elementId, value) {
+  const element = getEl(elementId);
+
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+/* =========================================================
+   RENDER TRANSACTIONS
+========================================================= */
+
+function renderTransactions(containerId = "transactionList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.transactions.length) {
+    container.innerHTML =
+      `<div class="empty-state">No transactions yet</div>`;
+    return;
+  }
+
+  const items = [...data.transactions]
+    .reverse()
+    .slice(0, 100);
+
+  container.innerHTML = items.map(item => `
+    <div class="transaction-item">
+      <div>
+        <strong>${item.type === "income" ? "Income" : "Expense"}</strong>
+        <div>${safeText(item.note || "No note")}</div>
+        <small>${safeText(item.date)}</small>
+      </div>
+
+      <div>
+        <strong>
+          ${item.type === "income" ? "+" : "-"}${money(item.amount)}
+        </strong>
+        <button onclick="deleteTransaction('${item.id}')">
+          Delete
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   RENDER LENDINGS
+========================================================= */
+
+function renderLendings(containerId = "lendingList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.lendings.length) {
+    container.innerHTML =
+      `<div class="empty-state">No Paisa Len-Den records</div>`;
+    return;
+  }
+
+  container.innerHTML = [...data.lendings]
+    .reverse()
+    .map(item => `
+      <div class="lending-item">
+        <div>
+          <strong>${safeText(item.person)}</strong>
+          <div>
+            ${item.type === "given"
+              ? "Money Given"
+              : "Money Received"}
+          </div>
+          <small>${safeText(item.date)}</small>
+          ${
+            item.dueDate
+              ? `<small>Due: ${safeText(item.dueDate)}</small>`
+              : ""
+          }
+        </div>
+
+        <div>
+          <strong>${money(item.amount)}</strong>
+          <div>${safeText(item.status)}</div>
+
+          <button onclick="markLendingPaid('${item.id}')">
+            ${item.status === "paid" ? "Pending" : "Paid"}
+          </button>
+
+          <button onclick="deleteLending('${item.id}')">
+            Delete
+          </button>
+        </div>
+      </div>
+    `)
+    .join("");
+
+  updateDashboard();
+}
+
+/* =========================================================
+   RENDER GOALS
+========================================================= */
+
+function renderGoals(containerId = "goalList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.goals.length) {
+    container.innerHTML =
+      `<div class="empty-state">No goals created</div>`;
+    return;
+  }
+
+  container.innerHTML = data.goals.map(goal => {
+    const percentage = Math.min(
+      100,
+      Math.round((goal.saved / goal.target) * 100)
+    );
+
+    return `
+      <div class="goal-item">
+        <div>
+          <strong>${safeText(goal.name)}</strong>
+          <div>
+            ${money(goal.saved)} / ${money(goal.target)}
+          </div>
+
+          <div class="progress">
+            <div
+              class="progress-bar"
+              style="width:${percentage}%"
+            ></div>
+          </div>
+
+          <small>${percentage}% completed</small>
+        </div>
+
+        <div>
+          <button onclick="addGoalSaving('${goal.id}', 500)">
+            + ₹500
+          </button>
+
+          <button onclick="deleteGoal('${goal.id}')">
+            Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* =========================================================
+   RENDER BUDGET
+========================================================= */
+
+function renderBudgets(containerId = "budgetList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.budgets.length) {
+    container.innerHTML =
+      `<div class="empty-state">No budgets created</div>`;
+    return;
+  }
+
+  container.innerHTML = data.budgets.map(budget => {
+
+    const spent = data.transactions
+      .filter(x =>
+        x.type === "expense" &&
+        x.date.slice(0, 7) === budget.month
+      )
+      .reduce((sum, x) => sum + Number(x.amount), 0);
+
+    const remaining = budget.amount - spent;
+
+    return `
+      <div class="budget-item">
+        <strong>${safeText(budget.category)}</strong>
+
+        <div>Budget: ${money(budget.amount)}</div>
+        <div>Spent: ${money(spent)}</div>
+
+        <div>
+          Remaining:
+          <strong>${money(remaining)}</strong>
+        </div>
+
+        <button onclick="deleteBudget('${budget.id}')">
+          Delete
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+/* =========================================================
+   RENDER BILLS
+========================================================= */
+
+function renderBills(containerId = "billList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.bills.length) {
+    container.innerHTML =
+      `<div class="empty-state">No bills added</div>`;
+    return;
+  }
+
+  container.innerHTML = [...data.bills]
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .map(bill => `
+      <div class="bill-item">
+        <div>
+          <strong>${safeText(bill.name)}</strong>
+          <div>${money(bill.amount)}</div>
+          <small>Due: ${safeText(bill.dueDate)}</small>
+        </div>
+
+        <div>
+          <strong>${safeText(bill.status)}</strong>
+
+          <button onclick="markBillPaid('${bill.id}')">
+            ${bill.status === "paid" ? "Pending" : "Paid"}
+          </button>
+
+          <button onclick="deleteBill('${bill.id}')">
+            Delete
+          </button>
+        </div>
+      </div>
+    `)
+    .join("");
+}
+
+/* =========================================================
+   RENDER LOANS
+========================================================= */
+
+function renderLoans(containerId = "loanList") {
+  const container = getEl(containerId);
+
+  if (!container) return;
+
+  if (!data.loans.length) {
+    container.innerHTML =
+      `<div class="empty-state">No loans / EMI added</div>`;
+    return;
+  }
+
+  container.innerHTML = data.loans.map(loan => `
+    <div class="loan-item">
+      <div>
+        <strong>${safeText(loan.name)}</strong>
+
+        <div>
+          ${safeText(loan.lender || "Bank / Finance")}
+        </div>
+
+        <div>
+          Loan: ${money(loan.amount)}
+        </div>
+
+        <div>
+          EMI: ${money(loan.emi)}
+        </div>
+
+        <small>
+          Paid EMIs: ${loan.paidEmis}
+        </small>
+      </div>
+
+      <div>
+        <button onclick="payEMI('${loan.id}')">
+          Pay EMI
+        </button>
+
+        <button onclick="deleteLoan('${loan.id}')">
+          Delete
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+function searchHisab(query) {
+  query = String(query || "").toLowerCase().trim();
+
+  if (!query) {
+    renderTransactions();
+    renderLendings();
+    return;
+  }
+
+  const transactionResults = data.transactions.filter(item =>
+    `${item.type} ${item.note} ${item.date}`
+      .toLowerCase()
+      .includes(query)
+  );
+
+  const lendingResults = data.lendings.filter(item =>
+    `${item.person} ${item.type} ${item.note} ${item.date}`
+      .toLowerCase()
+      .includes(query)
+  );
+
+  const transactionContainer = getEl("transactionList");
+
+  if (transactionContainer) {
+    transactionContainer.innerHTML =
+      transactionResults.map(item => `
+        <div class="transaction-item">
+          <strong>${safeText(item.note || item.type)}</strong>
+          <span>${money(item.amount)}</span>
+        </div>
+      `).join("") ||
+      `<div class="empty-state">No result found</div>`;
+  }
+
+  const lendingContainer = getEl("lendingList");
+
+  if (lendingContainer) {
+    lendingContainer.innerHTML =
+      lendingResults.map(item => `
+        <div class="lending-item">
+          <strong>${safeText(item.person)}</strong>
+          <span>${money(item.amount)}</span>
+        </div>
+      `).join("") ||
+      `<div class="empty-state">No result found</div>`;
+  }
+}
+
+window.searchHisab = searchHisab;
+
+/* =========================================================
+   REPORT
+========================================================= */
+
+function getReport() {
+  const totals = getTotals();
+
+  return {
+    totalIncome: totals.income,
+    totalExpense: totals.expense,
+    balance: totals.balance,
+    moneyGiven: totals.given,
+    moneyReceived: totals.received,
+    goals: data.goals.length,
+    bills: data.bills.length,
+    loans: data.loans.length,
+    transactions: data.transactions.length
+  };
+}
+
+window.getReport = getReport;
+
+/* =========================================================
+   BACKUP
+========================================================= */
+
+function exportBackup() {
+  const backup = JSON.stringify(data, null, 2);
+
+  const blob = new Blob(
+    [backup],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download =
+    `HISAB-Backup-${today()}.json`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+  showToast("Backup exported");
+}
+
+function importBackup(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = event => {
+    try {
+      const imported =
+        JSON.parse(event.target.result);
+
+      if (!imported.transactions) {
+        throw new Error("Invalid backup");
+      }
+
+      data = {
+        ...defaultData,
+        ...imported
+      };
+
+      saveData();
+
+      renderAll();
+
+      showToast("Backup restored");
+    } catch (error) {
+      showToast("Invalid backup file");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+window.exportBackup = exportBackup;
+window.importBackup = importBackup;
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function resetHisabData() {
+  const confirmed = confirm(
+    "All HISAB data will be deleted. Continue?"
+  );
+
+  if (!confirmed) return;
+
+  localStorage.removeItem(HISAB_KEY);
+
+  data = structuredClone(defaultData);
+
+  renderAll();
+
+  showToast("All data cleared");
+}
+
+window.resetHisabData = resetHisabData;
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(message) {
+  let toast = getEl("hisabToast");
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "hisabToast";
+
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.bottom = "25px";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.padding = "12px 18px";
+    toast.style.borderRadius = "12px";
+    toast.style.background = "#111827";
+    toast.style.color = "#fff";
+    toast.style.zIndex = "99999";
+    toast.style.fontSize = "14px";
+
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = message;
+  toast.style.display = "block";
+
+  clearTimeout(window.hisabToastTimer);
+
+  window.hisabToastTimer = setTimeout(() => {
+    toast.style.display = "none";
+  }, 2200);
+}
+
+window.showToast = showToast;
+
+/* =========================================================
+   RENDER ALL
+========================================================= */
+
+function renderAll() {
+  updateDashboard();
+  renderTransactions();
+  renderLendings();
+  renderGoals();
+  renderBudgets();
+  renderBills();
+  renderLoans();
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.classList.toggle(
+      "active",
+      btn.dataset.mode === data.mode
+    );
+  });
+}
+
+/* =========================================================
+   BUTTON / FORM AUTO HANDLER
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  renderAll();
+
+  /* Income form */
+  const incomeForm = getEl("incomeForm");
+
+  if (incomeForm) {
+    incomeForm.addEventListener("submit", e => {
+      e.preventDefault();
+
+      const amount =
+        incomeForm.querySelector("[name='amount']")?.value;
+
+      const note =
+        incomeForm.querySelector("[name='note']")?.value || "";
+
+      const date =
+        incomeForm.querySelector("[name='date']")?.value || today();
+
+      addIncome(amount, note, date);
+
+      incomeForm.reset();
+    });
+  }
+
+  /* Expense form */
+  const expenseForm = getEl("expenseForm");
+
+  if (expenseForm) {
+    expenseForm.addEventListener("submit", e => {
+      e.preventDefault();
+
+      const amount =
+        expenseForm.querySelector("[name='amount']")?.value;
+
+      const note =
+        expenseForm.querySelector("[name='note']")?.value || "";
+
+      const date =
+        expenseForm.querySelector("[name='date']")?.value || today();
+
+      addExpense(amount, note, date);
+
+      expenseForm.reset();
+    });
+  }
+
+  /* Search */
+  const searchInput = getEl("hisabSearch");
+
+  if (searchInput) {
+    searchInput.addEventListener("input", e => {
+      searchHisab(e.target.value);
+    });
+  }
+});
+
+/* =========================================================
+   GLOBAL ACCESS
+========================================================= */
+
+window.HISAB = {
+  getData: () => data,
+
+  save: saveData,
+
+  totals: getTotals,
+
+  addTransaction,
+
+  addLending,
+
+  addGoal,
+
+  addBudget,
+
+  addBill,
+
+  addLoan,
+
+  exportBackup,
+
+  reset: resetHisabData
+};
