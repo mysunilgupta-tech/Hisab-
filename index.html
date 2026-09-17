@@ -1,217 +1,1655 @@
 <!doctype html>
-<html lang="hi"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hisab V1</title><link rel="stylesheet" href="style.css"></head>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#082b45">
+
+<title>HISAB Money Manager</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
 <body>
-<header><h1>Hisab</h1><p>Aaj ka hisab, kal ki planning</p></header>
+
+<!-- =========================
+     GUEST / WELCOME SCREEN
+========================= -->
+
 <section id="guestGate" class="guest-gate">
+
   <div class="guest-card">
-    <div class="guest-icon">👤</div>
-    <h2>Hisab use karein</h2>
-    <p>Account banana zaroori nahi hai. Aap bina login ke Hisab ko turant use kar sakte hain.</p>
-    <button class="primary guest-btn" onclick="enterGuestMode()">➡️ Bina Login Continue Karein</button>
-    <p class="muted">Guest Mode mein aapka data isi device par local storage mein save rahega.</p>
+
+    <div class="brand-mark">H</div>
+
+    <div class="brand-name">HISAB</div>
+
+    <div class="brand-sub">
+      Money Manager
+    </div>
+
+    <div class="tagline">
+      Track • Plan • Grow
+    </div>
+
+    <h2>
+      Apna hisab, simple rakho.
+    </h2>
+
+    <p>
+      Personal aur Business money management —
+      bina login ke.
+    </p>
+
+    <button
+      class="primary guest-btn"
+      onclick="enterGuestMode()">
+      Continue without Login
+    </button>
+
+    <p class="muted">
+      Data isi device par local storage mein rahega.
+    </p>
+
   </div>
+
 </section>
+
+
+<!-- =========================
+     MAIN APP
+========================= -->
+
 <div id="appShell" class="hidden">
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <div class="brand-mark small">
+      H
+    </div>
+
+    <div>
+
+      <div class="brand-name">
+        HISAB
+      </div>
+
+      <div class="brand-sub">
+        Money Manager
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="top-actions">
+
+    <button
+      class="icon-btn"
+      title="Language">
+      हि
+    </button>
+
+    <button
+      class="icon-btn"
+      title="Currency">
+      ₹
+    </button>
+
+    <button
+      class="icon-btn"
+      onclick="show('reminders')"
+      title="Reminders">
+      🔔
+    </button>
+
+  </div>
+
+</header>
+
+
 <main>
-<div class="hero"><div><span class="eyebrow">PERSONAL • FAMILY • BUSINESS</span><h2>Sabka Hisab, ek jagah.</h2><p>Income, kharch, udhaar, saving aur future planning simple tareeke se.</p></div></div>
-<div class="quick"><button onclick="show('reports')">📊<span>Summary</span></button><button onclick="show('planning')">🎯<span>Goals</span></button><button onclick="show('credit')">💳<span>EMI</span></button><button onclick="show('reminders')">🔔<span>Alerts</span></button></div>
 
-<nav><button onclick="show('home')">🏠 Home</button><button onclick="show('business')">📒 Business Khata</button><button onclick="show('personal')">🤝 Personal Udhaar</button><button onclick="show('planning')">🎯 Planning</button><button onclick="show('credit')">💳 EMI & Bills</button><button onclick="show('family')">🏠 Family</button><button onclick="show('reports')">📊 Reports</button><button onclick="show('reminders')">🔔 Reminders</button><button onclick="show('privacy')">🔐 Privacy</button><button onclick="show('final')">✅ V1 Status</button><button onclick="show('ads')">📢 Ads</button><button onclick="show('familytools')">👨‍👩‍👧 Family+</button><button onclick="show('tools13')">🧰 More Tools</button></nav>
+<!-- =========================
+     WELCOME
+========================= -->
+
+<section class="welcome">
+
+  <div>
+
+    <span class="eyebrow">
+      PERSONAL • BUSINESS
+    </span>
+
+    <h1>
+      Welcome Back!
+    </h1>
+
+    <p>
+      Choose your mode to get started
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     PERSONAL / BUSINESS
+========================= -->
+
+<section class="mode-grid">
+
+  <button
+    class="mode-card personal-mode"
+    onclick="show('personal')">
+
+    <span class="mode-icon">
+      👤
+    </span>
+
+    <span class="mode-title">
+      Personal
+    </span>
+
+    <span class="mode-text">
+      Your daily money, savings & goals
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
+
+  <button
+    class="mode-card business-mode"
+    onclick="show('business')">
+
+    <span class="mode-icon">
+      💼
+    </span>
+
+    <span class="mode-title">
+      Business
+    </span>
+
+    <span class="mode-text">
+      Customers, khata & business cashflow
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
+</section>
+
+
+<!-- =========================
+     MONEY OVERVIEW
+========================= -->
+
+<section class="overview-strip">
+
+  <div>
+
+    <small>
+      Money Given
+    </small>
+
+    <b id="receivable">
+      ₹0
+    </b>
+
+  </div>
+
+
+  <div>
+
+    <small>
+      Money Received
+    </small>
+
+    <b id="payable">
+      ₹0
+    </b>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     HOME
+========================= -->
+
 <section id="home" class="screen">
-<h2>Dashboard</h2><div class="cards"><div><small>Total lena</small><b id="receivable">₹0</b></div><div><small>Total dena</small><b id="payable">₹0</b></div></div>
-<p>Business Khata aur Personal Udhaar yahan se manage karein.</p></section>
-<section id="business" class="screen hidden"><h2>📒 Business Khata</h2>
-<button class="primary" onclick="addPerson('business')">➕ Customer Add</button><div id="businessList"></div></section>
-<section id="personal" class="screen hidden"><h2>🤝 Personal Udhaar</h2>
-<button class="primary" onclick="addPerson('personal')">➕ Dost/Rishtedar Add</button><div id="personalList"></div></section>
 
-<section id="planning" class="screen hidden">
-<h2>🏠 Budget & Saving Planner</h2>
-<div class="form">
-<label>Monthly Income ₹<input id="mIncome" type="number" placeholder="40000"></label>
-<label>Monthly Home Budget ₹<input id="mBudget" type="number" placeholder="25000"></label>
-<label>Monthly Saving Target ₹<input id="mSaving" type="number" placeholder="10000"></label>
-<button class="primary" onclick="calcBudget()">📊 Calculate</button>
-</div>
-<div id="budgetResult" class="person"></div>
-<h2>🎯 Future Purchase Goal</h2>
-<div class="form">
-<label>Goal Name<input id="gName" placeholder="Scooty"></label>
-<label>Target Amount ₹<input id="gTarget" type="number" placeholder="100000"></label>
-<label>Current Saving ₹<input id="gCurrent" type="number" placeholder="25000"></label>
-<label>Monthly Saving ₹<input id="gMonthly" type="number" placeholder="5000"></label>
-<button class="primary" onclick="calcGoal()">🎯 Plan Goal</button>
-</div>
-<div id="goalResult" class="person"></div>
+  <div class="section-head">
+
+    <div>
+
+      <span class="eyebrow">
+        ALL FEATURES
+      </span>
+
+      <h2>
+        Manage Your Money
+      </h2>
+
+    </div>
+
+    <button
+      class="link-btn"
+      onclick="show('reports')">
+
+      View Reports →
+
+    </button>
+
+  </div>
+
+
+  <!-- FEATURE GRID -->
+
+  <div class="feature-grid">
+
+    <button onclick="show('reports')">
+
+      <span>💰</span>
+
+      <b>
+        Income
+      </b>
+
+      <small>
+        Track earnings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>💸</span>
+
+      <b>
+        Expenses
+      </b>
+
+      <small>
+        Track spending
+      </small>
+
+    </button>
+
+
+    <button onclick="show('personal')">
+
+      <span>🤝</span>
+
+      <b>
+        Khata / Udhaar
+      </b>
+
+      <small>
+        Given & received
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>🎯</span>
+
+      <b>
+        Goals
+      </b>
+
+      <small>
+        Plan your targets
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>📊</span>
+
+      <b>
+        Budget
+      </b>
+
+      <small>
+        Set limits
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>💰</span>
+
+      <b>
+        Savings
+      </b>
+
+      <small>
+        Grow your savings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reminders')">
+
+      <span>🧾</span>
+
+      <b>
+        Bills & Reminders
+      </b>
+
+      <small>
+        Never miss due dates
+      </small>
+
+    </button>
+
+
+    <button onclick="show('credit')">
+
+      <span>💳</span>
+
+      <b>
+        Loans & EMI
+      </b>
+
+      <small>
+        Plan repayments
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>📈</span>
+
+      <b>
+        Reports & Analytics
+      </b>
+
+      <small>
+        See your progress
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>🧾</span>
+
+      <b>
+        Transactions
+      </b>
+
+      <small>
+        History & categories
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>⚙️</span>
+
+      <b>
+        Settings
+      </b>
+
+      <small>
+        App preferences
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>🔐</span>
+
+      <b>
+        Security
+      </b>
+
+      <small>
+        Backup & privacy
+      </small>
+
+    </button>
+
+  </div>
+
+
+  <!-- SUPPORT STRIP -->
+
+  <section class="tools-strip">
+
+    <div>
+
+      <span>☁️</span>
+
+      <b>
+        Offline<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#082b45">
+
+<title>HISAB Money Manager</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- =========================
+     GUEST / WELCOME SCREEN
+========================= -->
+
+<section id="guestGate" class="guest-gate">
+
+  <div class="guest-card">
+
+    <div class="brand-mark">H</div>
+
+    <div class="brand-name">HISAB</div>
+
+    <div class="brand-sub">
+      Money Manager
+    </div>
+
+    <div class="tagline">
+      Track • Plan • Grow
+    </div>
+
+    <h2>
+      Apna hisab, simple rakho.
+    </h2>
+
+    <p>
+      Personal aur Business money management —
+      bina login ke.
+    </p>
+
+    <button
+      class="primary guest-btn"
+      onclick="enterGuestMode()">
+      Continue without Login
+    </button>
+
+    <p class="muted">
+      Data isi device par local storage mein rahega.
+    </p>
+
+  </div>
+
 </section>
 
-<section id="credit" class="screen hidden">
-<h2>💳 EMI / Loan Planner</h2>
-<div class="form">
-<label>Loan Amount ₹<input id="loan" type="number" placeholder="500000"></label>
-<label>Annual Interest %<input id="rate" type="number" step="0.01" placeholder="10"></label>
-<label>Tenure (months)<input id="tenure" type="number" placeholder="60"></label>
-<button class="primary" onclick="calcEMI()">🧮 Calculate EMI</button>
-</div>
-<div id="emiResult" class="person"></div>
 
-<h2>💳 Credit Card / Payment</h2>
-<div class="form">
-<label>Bill Amount ₹<input id="cardBill" type="number" placeholder="10000"></label>
-<label>Due Date<input id="cardDue" type="date"></label>
-<button class="primary" onclick="addBill('Credit Card')">💾 Save Bill</button>
-</div>
+<!-- =========================
+     MAIN APP
+========================= -->
 
-<h2>🧾 Bills & Subscriptions</h2>
-<div class="form">
-<label>Bill/Subscription Name<input id="billName" placeholder="Internet"></label>
-<label>Amount ₹<input id="billAmount" type="number" placeholder="799"></label>
-<label>Due Date<input id="billDue" type="date"></label>
-<button class="primary" onclick="addBill()">➕ Add Reminder</button>
-</div>
-<div id="billList"></div>
+<div id="appShell" class="hidden">
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <div class="brand-mark small">
+      H
+    </div>
+
+    <div>
+
+      <div class="brand-name">
+        HISAB
+      </div>
+
+      <div class="brand-sub">
+        Money Manager
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="top-actions">
+
+    <button
+      class="icon-btn"
+      title="Language">
+      हि
+    </button>
+
+    <button
+      class="icon-btn"
+      title="Currency">
+      ₹
+    </button>
+
+    <button
+      class="icon-btn"
+      onclick="show('reminders')"
+      title="Reminders">
+      🔔
+    </button>
+
+  </div>
+
+</header>
+
+
+<main>
+
+<!-- =========================
+     WELCOME
+========================= -->
+
+<section class="welcome">
+
+  <div>
+
+    <span class="eyebrow">
+      PERSONAL • BUSINESS
+    </span>
+
+    <h1>
+      Welcome Back!
+    </h1>
+
+    <p>
+      Choose your mode to get started
+    </p>
+
+  </div>
+
 </section>
 
-<section id="family" class="screen hidden">
-<h2>🏦 FD Planner</h2>
-<div class="form">
-<label>FD Amount ₹<input id="fdP" type="number" placeholder="100000"></label>
-<label>Annual Interest %<input id="fdR" type="number" step="0.01" placeholder="7"></label>
-<label>Tenure (months)<input id="fdN" type="number" placeholder="12"></label>
-<button class="primary" onclick="calcFD()">🧮 Calculate FD</button>
-</div><div id="fdResult" class="person"></div>
 
-<h2>🛡️ Insurance</h2>
-<div class="form">
-<label>Policy Name<input id="insName" placeholder="Health Insurance"></label>
-<label>Premium ₹<input id="insPremium" type="number" placeholder="12000"></label>
-<label>Renewal Date<input id="insDate" type="date"></label>
-<button class="primary" onclick="addInsurance()">➕ Add Policy</button>
-</div><div id="insList"></div>
+<!-- =========================
+     PERSONAL / BUSINESS
+========================= -->
 
-<h2>🎒 School Fees & Books</h2>
-<div class="form">
-<label>Child Name<input id="child" placeholder="Aarav"></label>
-<label>Fee Amount ₹<input id="schoolFee" type="number" placeholder="5000"></label>
-<label>Fee Due Date<input id="schoolDue" type="date"></label>
-<label>Books/Uniform Budget ₹<input id="schoolBooks" type="number" placeholder="5000"></label>
-<button class="primary" onclick="addSchool()">💾 Save School Plan</button>
-</div><div id="schoolList"></div>
+<section class="mode-grid">
 
-<h2>🚗 Vehicle</h2>
-<div class="form">
-<label>Vehicle<input id="vehicle" placeholder="Bike"></label>
-<label>Fuel Budget ₹/month<input id="fuel" type="number" placeholder="3000"></label>
-<label>Service Date<input id="service" type="date"></label>
-<label>Insurance Renewal<input id="vehicleIns" type="date"></label>
-<label>PUC Expiry<input id="puc" type="date"></label>
-<button class="primary" onclick="addVehicle()">🚗 Save Vehicle</button>
-</div><div id="vehicleList"></div>
+  <button
+    class="mode-card personal-mode"
+    onclick="show('personal')">
+
+    <span class="mode-icon">
+      👤
+    </span>
+
+    <span class="mode-title">
+      Personal
+    </span>
+
+    <span class="mode-text">
+      Your daily money, savings & goals
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
+
+  <button
+    class="mode-card business-mode"
+    onclick="show('business')">
+
+    <span class="mode-icon">
+      💼
+    </span>
+
+    <span class="mode-title">
+      Business
+    </span>
+
+    <span class="mode-text">
+      Customers, khata & business cashflow
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
 </section>
 
-<section id="reports" class="screen hidden">
-<h2>📊 Financial Dashboard</h2>
-<div class="cards">
-<div><small>Total Income</small><b id="rIncome">₹0</b></div>
-<div><small>Total Expense</small><b id="rExpense">₹0</b></div>
-<div><small>Net Saving</small><b id="rSaving">₹0</b></div>
-<div><small>Transactions</small><b id="rCount">0</b></div>
-</div>
-<h2>➕ Add Income / Expense</h2>
-<div class="form">
-<label>Type<select id="txType"><option value="income">Income</option><option value="expense">Expense</option></select></label>
-<label>Amount ₹<input id="txAmount" type="number" placeholder="1000"></label>
-<label>Category<select id="txCat"><option>Salary</option><option>Business</option><option>Grocery</option><option>School</option><option>Travel</option><option>Medical</option><option>Home</option><option>Other</option></select></label>
-<label>Note<input id="txNote" placeholder="Optional"></label>
-<button class="primary" onclick="addTransaction()">💾 Save Transaction</button>
-</div>
-<h2>📈 Category Summary</h2><div id="catSummary"></div>
-<h2>📜 Recent Transactions</h2><div id="txList"></div>
+
+<!-- =========================
+     MONEY OVERVIEW
+========================= -->
+
+<section class="overview-strip">
+
+  <div>
+
+    <small>
+      Money Given
+    </small>
+
+    <b id="receivable">
+      ₹0
+    </b>
+
+  </div>
+
+
+  <div>
+
+    <small>
+      Money Received
+    </small>
+
+    <b id="payable">
+      ₹0
+    </b>
+
+  </div>
+
 </section>
 
-<section id="reminders" class="screen hidden">
-<h2>🔔 Smart Reminders</h2>
-<div class="form">
-<label>Reminder Name<input id="remName" placeholder="Electricity Bill"></label>
-<label>Type<select id="remType"><option>Bill</option><option>EMI</option><option>Subscription</option><option>Warranty</option><option>Document</option><option>Vehicle</option><option>Insurance</option><option>Other</option></select></label>
-<label>Due Date<input id="remDate" type="date"></label>
-<label>Amount (optional) ₹<input id="remAmount" type="number" placeholder="1000"></label>
-<label>Note<input id="remNote" placeholder="Optional"></label>
-<button class="primary" onclick="addReminder()">🔔 Save Reminder</button>
-</div>
-<div id="remSummary" class="person"></div>
-<div id="remList"></div>
+
+<!-- =========================
+     HOME
+========================= -->
+
+<section id="home" class="screen">
+
+  <div class="section-head">
+
+    <div>
+
+      <span class="eyebrow">
+        ALL FEATURES
+      </span>
+
+      <h2>
+        Manage Your Money
+      </h2>
+
+    </div>
+
+    <button
+      class="link-btn"
+      onclick="show('reports')">
+
+      View Reports →
+
+    </button>
+
+  </div>
+
+
+  <!-- FEATURE GRID -->
+
+  <div class="feature-grid">
+
+    <button onclick="show('reports')">
+
+      <span>💰</span>
+
+      <b>
+        Income
+      </b>
+
+      <small>
+        Track earnings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>💸</span>
+
+      <b>
+        Expenses
+      </b>
+
+      <small>
+        Track spending
+      </small>
+
+    </button>
+
+
+    <button onclick="show('personal')">
+
+      <span>🤝</span>
+
+      <b>
+        Khata / Udhaar
+      </b>
+
+      <small>
+        Given & received
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>🎯</span>
+
+      <b>
+        Goals
+      </b>
+
+      <small>
+        Plan your targets
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>📊</span>
+
+      <b>
+        Budget
+      </b>
+
+      <small>
+        Set limits
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>💰</span>
+
+      <b>
+        Savings
+      </b>
+
+      <small>
+        Grow your savings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reminders')">
+
+      <span>🧾</span>
+
+      <b>
+        Bills & Reminders
+      </b>
+
+      <small>
+        Never miss due dates
+      </small>
+
+    </button>
+
+
+    <button onclick="show('credit')">
+
+      <span>💳</span>
+
+      <b>
+        Loans & EMI
+      </b>
+
+      <small>
+        Plan repayments
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>📈</span>
+
+      <b>
+        Reports & Analytics
+      </b>
+
+      <small>
+        See your progress
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>🧾</span>
+
+      <b>
+        Transactions
+      </b>
+
+      <small>
+        History & categories
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>⚙️</span>
+
+      <b>
+        Settings
+      </b>
+
+      <small>
+        App preferences
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>🔐</span>
+
+      <b>
+        Security
+      </b>
+
+      <small>
+        Backup & privacy
+      </small>
+
+    </button>
+
+  </div>
+
+
+  <!-- SUPPORT STRIP -->
+
+  <section class="tools-strip">
+
+    <div>
+
+      <span>☁️</span>
+
+      <b>
+        Offline Support
+      </b>
+
+      <small>
+        Works without login
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>💾</span>
+
+      <b>
+        Backup & Restore
+      </b>
+
+      <small>
+        Keep your data safe
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>📢</span>
+
+      <b>
+        AdMob Ready
+      </b>
+
+      <small>
+        Free app model
+      </small>
+
+    </div>
+
+  </section>
+
+</section> Support
+      </b>
+
+      <small>
+        Works without login
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>💾</span>
+
+      <b>
+        Backup & Restore
+      </b>
+
+      <small>
+        Keep your data safe
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>📢</span>
+
+      <b>
+        AdMob Ready
+      </b>
+
+      <small>
+        Free app model
+      </small>
+
+    </div>
+
+  </section>
+
 </section>
+  <!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#082b45">
+
+<title>HISAB Money Manager</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- =========================
+     GUEST / WELCOME SCREEN
+========================= -->
+
+<section id="guestGate" class="guest-gate">
+
+  <div class="guest-card">
+
+    <div class="brand-mark">H</div>
+
+    <div class="brand-name">HISAB</div>
+
+    <div class="brand-sub">
+      Money Manager
+    </div>
+
+    <div class="tagline">
+      Track • Plan • Grow
+    </div>
+
+    <h2>
+      Apna hisab, simple rakho.
+    </h2>
+
+    <p>
+      Personal aur Business money management —
+      bina login ke.
+    </p>
+
+    <button
+      class="primary guest-btn"
+      onclick="enterGuestMode()">
+      Continue without Login
+    </button>
+
+    <p class="muted">
+      Data isi device par local storage mein rahega.
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     MAIN APP
+========================= -->
+
+<div id="appShell" class="hidden">
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <div class="brand-mark small">
+      H
+    </div>
+
+    <div>
+
+      <div class="brand-name">
+        HISAB
+      </div>
+
+      <div class="brand-sub">
+        Money Manager
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="top-actions">
+
+    <button
+      class="icon-btn"
+      title="Language">
+      हि
+    </button>
+
+    <button
+      class="icon-btn"
+      title="Currency">
+      ₹
+    </button>
+
+    <button
+      class="icon-btn"
+      onclick="show('reminders')"
+      title="Reminders">
+      🔔
+    </button>
+
+  </div>
+
+</header>
+
+
+<main>
+
+<!-- =========================
+     WELCOME
+========================= -->
+
+<section class="welcome">
+
+  <div>
+
+    <span class="eyebrow">
+      PERSONAL • BUSINESS
+    </span>
+
+    <h1>
+      Welcome Back!
+    </h1>
+
+    <p>
+      Choose your mode to get started
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     PERSONAL / BUSINESS
+========================= -->
+
+<section class="mode-grid">
+
+  <button
+    class="mode-card personal-mode"
+    onclick="show('personal')">
+
+    <span class="mode-icon">
+      👤
+    </span>
+
+    <span class="mode-title">
+      Personal
+    </span>
+
+    <span class="mode-text">
+      Your daily money, savings & goals
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
+
+  <button
+    class="mode-card business-mode"
+    onclick="show('business')">
+
+    <span class="mode-icon">
+      💼
+    </span>
+
+    <span class="mode-title">
+      Business
+    </span>
+
+    <span class="mode-text">
+      Customers, khata & business cashflow
+    </span>
+
+    <span class="mode-arrow">
+      →
+    </span>
+
+  </button>
+
+</section>
+
+
+<!-- =========================
+     MONEY OVERVIEW
+========================= -->
+
+<section class="overview-strip">
+
+  <div>
+
+    <small>
+      Money Given
+    </small>
+
+    <b id="receivable">
+      ₹0
+    </b>
+
+  </div>
+
+
+  <div>
+
+    <small>
+      Money Received
+    </small>
+
+    <b id="payable">
+      ₹0
+    </b>
+
+  </div>
+
+</section>
+
+
+<!-- =========================
+     HOME
+========================= -->
+
+<section id="home" class="screen">
+
+  <div class="section-head">
+
+    <div>
+
+      <span class="eyebrow">
+        ALL FEATURES
+      </span>
+
+      <h2>
+        Manage Your Money
+      </h2>
+
+    </div>
+
+    <button
+      class="link-btn"
+      onclick="show('reports')">
+
+      View Reports →
+
+    </button>
+
+  </div>
+
+
+  <!-- FEATURE GRID -->
+
+  <div class="feature-grid">
+
+    <button onclick="show('reports')">
+
+      <span>💰</span>
+
+      <b>
+        Income
+      </b>
+
+      <small>
+        Track earnings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>💸</span>
+
+      <b>
+        Expenses
+      </b>
+
+      <small>
+        Track spending
+      </small>
+
+    </button>
+
+
+    <button onclick="show('personal')">
+
+      <span>🤝</span>
+
+      <b>
+        Khata / Udhaar
+      </b>
+
+      <small>
+        Given & received
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>🎯</span>
+
+      <b>
+        Goals
+      </b>
+
+      <small>
+        Plan your targets
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>📊</span>
+
+      <b>
+        Budget
+      </b>
+
+      <small>
+        Set limits
+      </small>
+
+    </button>
+
+
+    <button onclick="show('planning')">
+
+      <span>💰</span>
+
+      <b>
+        Savings
+      </b>
+
+      <small>
+        Grow your savings
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reminders')">
+
+      <span>🧾</span>
+
+      <b>
+        Bills & Reminders
+      </b>
+
+      <small>
+        Never miss due dates
+      </small>
+
+    </button>
+
+
+    <button onclick="show('credit')">
+
+      <span>💳</span>
+
+      <b>
+        Loans & EMI
+      </b>
+
+      <small>
+        Plan repayments
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>📈</span>
+
+      <b>
+        Reports & Analytics
+      </b>
+
+      <small>
+        See your progress
+      </small>
+
+    </button>
+
+
+    <button onclick="show('reports')">
+
+      <span>🧾</span>
+
+      <b>
+        Transactions
+      </b>
+
+      <small>
+        History & categories
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>⚙️</span>
+
+      <b>
+        Settings
+      </b>
+
+      <small>
+        App preferences
+      </small>
+
+    </button>
+
+
+    <button onclick="show('privacy')">
+
+      <span>🔐</span>
+
+      <b>
+        Security
+      </b>
+
+      <small>
+        Backup & privacy
+      </small>
+
+    </button>
+
+  </div>
+
+
+  <!-- SUPPORT STRIP -->
+
+  <section class="tools-strip">
+
+    <div>
+
+      <span>☁️</span>
+
+      <b>
+        Offline Support
+      </b>
+
+      <small>
+        Works without login
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>💾</span>
+
+      <b>
+        Backup & Restore
+      </b>
+
+      <small>
+        Keep your data safe
+      </small>
+
+    </div>
+
+
+    <div>
+
+      <span>📢</span>
+
+      <b>
+        AdMob Ready
+      </b>
+
+      <small>
+        Free app model
+      </small>
+
+    </div>
+
+  </section>
+
+</section>
+<!-- =========================
+     PRIVACY & BACKUP
+========================= -->
 
 <section id="privacy" class="screen hidden">
-<h2>🔐 Privacy & Backup</h2>
-<div class="person"><b>App Lock</b><p class="muted">Prototype PIN lock.</p><button class="primary" onclick="setPin()">🔑 Set / Change PIN</button> <button onclick="lockApp()">🔒 Lock Now</button></div>
-<div class="person"><b>💾 Backup</b><p class="muted">Export or restore your local Hisab data.</p><button class="primary" onclick="exportBackup()">⬇️ Export Backup</button><label>Restore Backup<input id="backupFile" type="file" accept=".json" onchange="importBackup(event)"></label></div>
-<div class="person"><b>📄 Data Export</b><p class="muted">Create a readable summary.</p><button class="primary" onclick="exportSummary()">📄 Export Summary</button></div>
+
+  <div class="page-title">
+    <button onclick="show('home')">←</button>
+
+    <div>
+      <span class="eyebrow">SETTINGS</span>
+      <h2>Privacy & Backup</h2>
+    </div>
+  </div>
+
+  <div class="person">
+    <b>🔐 App Lock</b>
+    <p class="muted">
+      Protect your local app data.
+    </p>
+
+    <button class="primary" onclick="setPin()">
+      Set / Change PIN
+    </button>
+
+    <button onclick="lockApp()">
+      Lock Now
+    </button>
+  </div>
+
+
+  <div class="person">
+
+    <b>💾 Backup & Restore</b>
+
+    <p class="muted">
+      Export or restore your local HISAB data.
+    </p>
+
+    <button
+      class="primary"
+      onclick="exportBackup()">
+      Export Backup
+    </button>
+
+    <label>
+      Restore Backup
+
+      <input
+        id="backupFile"
+        type="file"
+        accept=".json"
+        onchange="importBackup(event)">
+    </label>
+
+  </div>
+
+
+  <div class="person">
+
+    <b>📄 Data Export</b>
+
+    <p class="muted">
+      Create a readable money summary.
+    </p>
+
+    <button
+      class="primary"
+      onclick="exportSummary()">
+      Export Summary
+    </button>
+
+  </div>
+
 </section>
-<div class="bottom"><button onclick="show('home')">🏠<small>Home</small></button><button onclick="show('business')">📒<small>Khata</small></button><button onclick="show('planning')">🎯<small>Plan</small></button><button onclick="show('reminders')">🔔<small>Reminders</small></button><button onclick="show('privacy')">🔐<small>Privacy</small></button></div>
 
-<section id="final" class="screen hidden">
-<h2>✅ Hisab V1 Final Status</h2>
-<div class="person"><b>Core modules integrated</b><br>
-💰 Income/Expense · 📒 Business Khata · 🤝 Personal Udhaar · 🏠 Budget · 💵 Saving · 🎯 Goals · 💳 EMI/Loan · 🧾 Bills · 🏦 FD · 🛡️ Insurance · 🎒 School · 🚗 Vehicle · 🔔 Reminders · 🔐 Privacy/Backup · 📊 Reports
-</div>
-<div class="person"><b>Release note</b><p class="muted">This package is the integrated web prototype checkpoint. Native Android APK/AAB conversion, secure encrypted storage, system notifications and production QA remain build-stage tasks.</p></div>
-</section>
 
-<section id="ads" class="screen hidden">
-<h2>📢 Free App • AdMob</h2>
-<div class="person"><b>Monetization</b><br>App download aur use free रहेगा. Revenue legitimate AdMob ad serving se target kiya जाएगा.</div>
-<div class="person"><b>Planned Ad Formats</b><ul>
-<li>📌 Banner — Home / Reports</li>
-<li>📰 Native — suitable content areas</li>
-<li>⏱️ Interstitial — natural breaks only</li>
-<li>🎁 Rewarded — optional, non-cash in-app benefit</li>
-<li>🚀 App Open — limited, user-friendly use</li>
-</ul></div>
-<div class="person"><b>Ad-free interaction zones</b><br>📒 Khata · 🤝 Udhaar · 💰 Income/Expense entry · 💳 EMI calculation · 🔐 Privacy/Backup</div>
-<div class="person"><b>Policy & Revenue</b><p class="muted">Actual ads, eligibility, valid impressions/interactions and revenue are controlled by AdMob/Google. The production build must use real AdMob App ID and Ad Unit IDs and comply with Google policies.</p></div>
-</section>
+<!-- =========================
+     FAMILY PLANNING
+========================= -->
 
-<section id="familytools" class="screen hidden">
-<h2>👨‍👩‍👧 Family & Planning+</h2>
-<div class="person"><b>Family Members</b>
-<div class="form"><label>Name<input id="fmName" placeholder="Papa / Mummy / Child"></label><button class="primary" onclick="addFamilyMember()">➕ Add Member</button></div>
-<div id="fmList"></div></div>
+<section id="family" class="screen hidden">
 
-<div class="person"><h3>🛒 Shopping Planner</h3>
-<div class="form"><label>Item<input id="shopItem" placeholder="Grocery / Books"></label><label>Budget ₹<input id="shopBudget" type="number" placeholder="2000"></label><button class="primary" onclick="addShopping()">➕ Add Item</button></div><div id="shopList"></div></div>
+  <div class="page-title">
 
-<div class="person"><h3>💡 Utility Tracker</h3>
-<div class="form"><label>Utility<select id="utilityName"><option>Electricity</option><option>Water</option><option>Gas</option><option>Mobile</option><option>Internet</option></select></label><label>Bill ₹<input id="utilityAmount" type="number" placeholder="1000"></label><label>Month<input id="utilityMonth" type="month"></label><button class="primary" onclick="addUtility()">💾 Save Bill</button></div><div id="utilityList"></div></div>
+    <button onclick="show('home')">
+      ←
+    </button>
 
-<div class="person"><h3>📈 Monthly Comparison</h3><div id="compareResult" class="muted">Transactions add karne ke baad comparison yahan dikhega.</div><button onclick="renderComparison()">🔄 Compare</button></div>
+    <div>
+      <span class="eyebrow">
+        FAMILY
+      </span>
 
-<div class="person"><h3>🛟 Emergency Fund</h3>
-<div class="form"><label>Monthly Essential Expense ₹<input id="emExpense" type="number" placeholder="25000"></label><label>Target Months<input id="emMonths" type="number" placeholder="6"></label><label>Current Fund ₹<input id="emCurrent" type="number" placeholder="50000"></label><button class="primary" onclick="calcEmergency()">🎯 Calculate</button></div><div id="emResult"></div></div>
-</section>
+      <h2>
+        Family Planning
+      </h2>
+    </div>
 
-<section id="tools13" class="screen hidden">
-<h2>🧰 More Useful Tools</h2>
+  </div>
 
-<div class="person"><h3>📄 Document / Receipt Locker</h3>
-<div class="form"><label>Document/Receipt Name<input id="docName" placeholder="Bike Insurance Receipt"></label><label>Expiry Date (optional)<input id="docDate" type="date"></label><button class="primary" onclick="addDoc()">💾 Save Record</button></div><div id="docList"></div></div>
 
-<div class="person"><h3>📅 Annual Planner</h3>
-<div class="form"><label>Plan/Expense<input id="annualName" placeholder="School Admission"></label><label>Expected Amount ₹<input id="annualAmount" type="number" placeholder="30000"></label><label>Month<input id="annualMonth" type="month"></label><button class="primary" onclick="addAnnual()">➕ Add Plan</button></div><div id="annualList"></div></div>
+  <h3 class="subhead">
+    🏦 FD Planner
+  </h3>
 
-<div class="person"><h3>🚦 Expense Limits</h3>
-<div class="form"><label>Category<select id="limitCat"><option>Grocery</option><option>Fuel</option><option>Shopping</option><option>School</option><option>Medical</option><option>Travel</option><option>Home</option><option>Other</option></select></label><label>Monthly Limit ₹<input id="limitAmount" type="number" placeholder="5000"></label><button class="primary" onclick="saveLimit()">💾 Set Limit</button></div><div id="limitList"></div></div>
+  <div class="form">
 
-<div class="person"><h3>🔎 Smart Search</h3>
-<div class="form"><label>Search<input id="searchAll" placeholder="Khata, transaction, bill, reminder..." oninput="searchAllData()"></label></div><div id="searchResults"></div></div>
+    <label>
+      FD Amount ₹
 
-<div class="person"><h3>📤 Share Hisab</h3>
-<p class="muted">Current summary ko share-ready text ke रूप में copy किया जा सकता है।</p>
-<button class="primary" onclick="shareHisab()">📤 Share / Copy Summary</button>
-</div>
-</section>
-</main><script src="app.js"></script><script>showGuestGate();</script>
-</body></html>
+      <input
+        id="fdP"
+        type="number"
+        placeholder="100000">
+    </label>
+
+
+    <label>
+      Annual Interest %
+
+      <input
+        id="fdR"
+        type="number"
+        step="0.01"
+        placeholder="7">
+    </label>
+
+
+    <label>
+      Tenure (months)
+
+      <input
+        id="fdN"
+        type="number"
+        placeholder="12">
+    </label>
+
+
+    <button
+      class="primary"
+      onclick="calcFD()">
+
+      Calculate FD
+
+    </button>
+
+  </div>
+
+
+  <div
+    id="fdResult"
+    class="person">
+  </div>
+
+
+  <h3 class="subhead">
+    🛡️ Insurance
+  </h3>
+
+  <div class="form">
+
+    <label>
+      Policy Name
+
+      <input
+        id="insName"
+        placeholder="Insurance
