@@ -8,14 +8,12 @@ const HISAB_KEY = "hisab_money_manager_v1";
 
 const defaultData = {
   mode: "Personal",
-
   transactions: [],
   lendings: [],
   goals: [],
   budgets: [],
   bills: [],
   loans: [],
-
   settings: {
     currency: "₹",
     language: "English"
@@ -27,14 +25,32 @@ let data = loadData();
 function loadData() {
   try {
     const saved = localStorage.getItem(HISAB_KEY);
-    return saved ? { ...defaultData, ...JSON.parse(saved) } : structuredClone(defaultData);
+
+    if (!saved) {
+      return structuredClone(defaultData);
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return {
+      ...structuredClone(defaultData),
+      ...parsed,
+      settings: {
+        ...structuredClone(defaultData.settings),
+        ...(parsed.settings || {})
+      }
+    };
   } catch (e) {
     return structuredClone(defaultData);
   }
 }
 
 function saveData() {
-  localStorage.setItem(HISAB_KEY, JSON.stringify(data));
+  localStorage.setItem(
+    HISAB_KEY,
+    JSON.stringify(data)
+  );
+
   updateDashboard();
 }
 
@@ -43,19 +59,26 @@ function saveData() {
 ========================================================= */
 
 function money(amount) {
-  return `${data.settings.currency}${Number(amount || 0).toLocaleString("en-IN")}`;
+  return `${data.settings.currency}${Number(
+    amount || 0
+  ).toLocaleString("en-IN")}`;
 }
 
 function today() {
-  return new Date().toISOString().split("T")[0];
+  return new Date()
+    .toISOString()
+    .split("T")[0];
 }
 
 function id() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).slice(2)
+  );
 }
 
-function getEl(id) {
-  return document.getElementById(id);
+function getEl(elementId) {
+  return document.getElementById(elementId);
 }
 
 function safeText(value) {
@@ -67,22 +90,110 @@ function safeText(value) {
     .replaceAll("'", "&#039;");
 }
 
+function setText(elementId, value) {
+  const element = getEl(elementId);
+
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+/* =========================================================
+   GUEST MODE + SCREEN NAVIGATION
+========================================================= */
+
+function enterGuestMode() {
+  const guestGate = getEl("guestGate");
+  const appShell = getEl("appShell");
+
+  if (guestGate) {
+    guestGate.classList.add("hidden");
+  }
+
+  if (appShell) {
+    appShell.classList.remove("hidden");
+  }
+
+  localStorage.setItem(
+    "hisab_guest_mode",
+    "true"
+  );
+
+  renderAll();
+
+  show("home");
+
+  showToast("Welcome to HISAB");
+}
+
+function show(sectionId) {
+  const appShell = getEl("appShell");
+
+  if (appShell) {
+    appShell.classList.remove("hidden");
+  }
+
+  document
+    .querySelectorAll(".screen")
+    .forEach(section => {
+      section.classList.add("hidden");
+    });
+
+  const target = getEl(sectionId);
+
+  if (target) {
+    target.classList.remove("hidden");
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function restoreGuestMode() {
+  const guestGate = getEl("guestGate");
+  const appShell = getEl("appShell");
+
+  if (
+    localStorage.getItem(
+      "hisab_guest_mode"
+    ) === "true"
+  ) {
+    if (guestGate) {
+      guestGate.classList.add("hidden");
+    }
+
+    if (appShell) {
+      appShell.classList.remove("hidden");
+    }
+  }
+}
+
+window.enterGuestMode = enterGuestMode;
+window.show = show;
+
 /* =========================================================
    MODE
 ========================================================= */
 
 function setMode(mode) {
   data.mode = mode;
+
   saveData();
 
-  document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.classList.toggle(
-      "active",
-      btn.dataset.mode === mode
-    );
-  });
+  document
+    .querySelectorAll(".mode-btn")
+    .forEach(btn => {
+      btn.classList.toggle(
+        "active",
+        btn.dataset.mode === mode
+      );
+    });
 
-  showToast(`${mode} mode selected`);
+  showToast(
+    `${mode} mode selected`
+  );
 }
 
 window.setMode = setMode;
@@ -91,11 +202,19 @@ window.setMode = setMode;
    TRANSACTIONS
 ========================================================= */
 
-function addTransaction(type, amount, note = "", date = today()) {
+function addTransaction(
+  type,
+  amount,
+  note = "",
+  date = today()
+) {
   amount = Number(amount);
 
   if (!amount || amount <= 0) {
-    showToast("Enter a valid amount");
+    showToast(
+      "Enter a valid amount"
+    );
+
     return false;
   }
 
@@ -110,58 +229,104 @@ function addTransaction(type, amount, note = "", date = today()) {
   });
 
   saveData();
+
   return true;
 }
 
-function addIncome(amount, note, date) {
-  if (addTransaction("income", amount, note, date)) {
+function addIncome(
+  amount,
+  note,
+  date
+) {
+  if (
+    addTransaction(
+      "income",
+      amount,
+      note,
+      date
+    )
+  ) {
     showToast("Income added");
     renderTransactions();
   }
 }
 
-function addExpense(amount, note, date) {
-  if (addTransaction("expense", amount, note, date)) {
+function addExpense(
+  amount,
+  note,
+  date
+) {
+  if (
+    addTransaction(
+      "expense",
+      amount,
+      note,
+      date
+    )
+  ) {
     showToast("Expense added");
     renderTransactions();
   }
 }
 
-function deleteTransaction(transactionId) {
-  data.transactions = data.transactions.filter(
-    item => item.id !== transactionId
-  );
+function deleteTransaction(
+  transactionId
+) {
+  data.transactions =
+    data.transactions.filter(
+      item =>
+        item.id !== transactionId
+    );
 
   saveData();
+
   renderTransactions();
-  showToast("Transaction deleted");
+
+  showToast(
+    "Transaction deleted"
+  );
 }
 
 window.addIncome = addIncome;
 window.addExpense = addExpense;
-window.deleteTransaction = deleteTransaction;
+window.deleteTransaction =
+  deleteTransaction;
 
 /* =========================================================
    PAISA LEN-DEN
 ========================================================= */
 
-function addLending(type, person, amount, note = "", dueDate = "") {
+function addLending(
+  type,
+  person,
+  amount,
+  note = "",
+  dueDate = ""
+) {
   amount = Number(amount);
 
-  if (!person.trim()) {
-    showToast("Enter person's name");
+  if (
+    !String(person || "").trim()
+  ) {
+    showToast(
+      "Enter person's name"
+    );
+
     return false;
   }
 
   if (!amount || amount <= 0) {
-    showToast("Enter a valid amount");
+    showToast(
+      "Enter a valid amount"
+    );
+
     return false;
   }
 
   data.lendings.push({
     id: id(),
     type,
-    person,
+    person: String(person).trim(),
     amount,
     note,
     dueDate,
@@ -171,6 +336,7 @@ function addLending(type, person, amount, note = "", dueDate = "") {
   });
 
   saveData();
+
   renderLendings();
 
   showToast(
@@ -182,46 +348,80 @@ function addLending(type, person, amount, note = "", dueDate = "") {
   return true;
 }
 
-function markLendingPaid(lendingId) {
-  const item = data.lendings.find(x => x.id === lendingId);
+function markLendingPaid(
+  lendingId
+) {
+  const item =
+    data.lendings.find(
+      x => x.id === lendingId
+    );
 
   if (!item) return;
 
-  item.status = item.status === "paid" ? "pending" : "paid";
+  item.status =
+    item.status === "paid"
+      ? "pending"
+      : "paid";
 
   saveData();
+
   renderLendings();
 }
 
-function deleteLending(lendingId) {
-  data.lendings = data.lendings.filter(
-    item => item.id !== lendingId
+function deleteLending(
+  lendingId
+) {
+  data.lendings =
+    data.lendings.filter(
+      item =>
+        item.id !== lendingId
+    );
+
+  saveData();
+
+  renderLendings();
+
+  showToast(
+    "Paisa Len-Den deleted"
   );
-
-  saveData();
-  renderLendings();
 }
 
-window.addLending = addLending;
-window.markLendingPaid = markLendingPaid;
-window.deleteLending = deleteLending;
+window.addLending =
+  addLending;
+
+window.markLendingPaid =
+  markLendingPaid;
+
+window.deleteLending =
+  deleteLending;
 
 /* =========================================================
    GOALS
 ========================================================= */
 
-function addGoal(name, target, saved = 0, deadline = "") {
+function addGoal(
+  name,
+  target,
+  saved = 0,
+  deadline = ""
+) {
   target = Number(target);
   saved = Number(saved || 0);
 
-  if (!name.trim() || target <= 0) {
-    showToast("Enter goal name and target");
+  if (
+    !String(name || "").trim() ||
+    target <= 0
+  ) {
+    showToast(
+      "Enter goal name and target"
+    );
+
     return;
   }
 
   data.goals.push({
     id: id(),
-    name,
+    name: String(name).trim(),
     target,
     saved,
     deadline,
@@ -229,91 +429,152 @@ function addGoal(name, target, saved = 0, deadline = "") {
   });
 
   saveData();
+
   renderGoals();
+
   showToast("Goal created");
 }
 
-function addGoalSaving(goalId, amount) {
-  const goal = data.goals.find(x => x.id === goalId);
+function addGoalSaving(
+  goalId,
+  amount
+) {
+  const goal =
+    data.goals.find(
+      x => x.id === goalId
+    );
+
   amount = Number(amount);
 
-  if (!goal || amount <= 0) return;
-
-  goal.saved += amount;
-
-  if (goal.saved > goal.target) {
-    goal.saved = goal.target;
+  if (
+    !goal ||
+    amount <= 0
+  ) {
+    return;
   }
 
-  saveData();
-  renderGoals();
-  showToast("Goal updated");
-}
-
-function deleteGoal(goalId) {
-  data.goals = data.goals.filter(
-    goal => goal.id !== goalId
+  goal.saved = Math.min(
+    goal.target,
+    goal.saved + amount
   );
 
   saveData();
+
   renderGoals();
+
+  showToast(
+    "Goal updated"
+  );
+}
+
+function deleteGoal(goalId) {
+  data.goals =
+    data.goals.filter(
+      goal =>
+        goal.id !== goalId
+    );
+
+  saveData();
+
+  renderGoals();
+
+  showToast("Goal deleted");
 }
 
 window.addGoal = addGoal;
-window.addGoalSaving = addGoalSaving;
-window.deleteGoal = deleteGoal;
+window.addGoalSaving =
+  addGoalSaving;
+window.deleteGoal =
+  deleteGoal;
 
 /* =========================================================
    BUDGET
 ========================================================= */
 
-function addBudget(category, amount, month = today().slice(0, 7)) {
+function addBudget(
+  category,
+  amount,
+  month = today().slice(0, 7)
+) {
   amount = Number(amount);
 
-  if (!category.trim() || amount <= 0) {
-    showToast("Enter category and budget");
+  if (
+    !String(category || "").trim() ||
+    amount <= 0
+  ) {
+    showToast(
+      "Enter category and budget"
+    );
+
     return;
   }
 
   data.budgets.push({
     id: id(),
-    category,
+    category: String(
+      category
+    ).trim(),
     amount,
     month
   });
 
   saveData();
+
   renderBudgets();
+
   showToast("Budget added");
 }
 
-function deleteBudget(budgetId) {
-  data.budgets = data.budgets.filter(
-    x => x.id !== budgetId
-  );
+function deleteBudget(
+  budgetId
+) {
+  data.budgets =
+    data.budgets.filter(
+      x => x.id !== budgetId
+    );
 
   saveData();
+
   renderBudgets();
+
+  showToast(
+    "Budget deleted"
+  );
 }
 
-window.addBudget = addBudget;
-window.deleteBudget = deleteBudget;
+window.addBudget =
+  addBudget;
+
+window.deleteBudget =
+  deleteBudget;
 
 /* =========================================================
    BILLS
 ========================================================= */
 
-function addBill(name, amount, dueDate, recurring = false) {
+function addBill(
+  name,
+  amount,
+  dueDate,
+  recurring = false
+) {
   amount = Number(amount);
 
-  if (!name.trim() || amount <= 0 || !dueDate) {
-    showToast("Enter bill details");
+  if (
+    !String(name || "").trim() ||
+    amount <= 0 ||
+    !dueDate
+  ) {
+    showToast(
+      "Enter bill details"
+    );
+
     return;
   }
 
   data.bills.push({
     id: id(),
-    name,
+    name: String(name).trim(),
     amount,
     dueDate,
     recurring,
@@ -321,51 +582,86 @@ function addBill(name, amount, dueDate, recurring = false) {
   });
 
   saveData();
+
   renderBills();
+
   showToast("Bill added");
 }
 
-function markBillPaid(billId) {
-  const bill = data.bills.find(x => x.id === billId);
+function markBillPaid(
+  billId
+) {
+  const bill =
+    data.bills.find(
+      x => x.id === billId
+    );
 
   if (!bill) return;
 
-  bill.status = bill.status === "paid" ? "pending" : "paid";
+  bill.status =
+    bill.status === "paid"
+      ? "pending"
+      : "paid";
 
   saveData();
+
   renderBills();
 }
 
-function deleteBill(billId) {
-  data.bills = data.bills.filter(
-    x => x.id !== billId
-  );
+function deleteBill(
+  billId
+) {
+  data.bills =
+    data.bills.filter(
+      x => x.id !== billId
+    );
 
   saveData();
+
   renderBills();
+
+  showToast("Bill deleted");
 }
 
 window.addBill = addBill;
-window.markBillPaid = markBillPaid;
-window.deleteBill = deleteBill;
+window.markBillPaid =
+  markBillPaid;
+window.deleteBill =
+  deleteBill;
 
 /* =========================================================
    LOANS / EMI
 ========================================================= */
 
-function addLoan(name, lender, amount, emi, dueDate, tenure = "") {
+function addLoan(
+  name,
+  lender,
+  amount,
+  emi,
+  dueDate,
+  tenure = ""
+) {
   amount = Number(amount);
   emi = Number(emi);
 
-  if (!name.trim() || amount <= 0 || emi <= 0) {
-    showToast("Enter loan details");
+  if (
+    !String(name || "").trim() ||
+    amount <= 0 ||
+    emi <= 0
+  ) {
+    showToast(
+      "Enter loan details"
+    );
+
     return;
   }
 
   data.loans.push({
     id: id(),
-    name,
-    lender,
+    name: String(name).trim(),
+    lender: String(
+      lender || ""
+    ).trim(),
     amount,
     emi,
     dueDate,
@@ -375,180 +671,355 @@ function addLoan(name, lender, amount, emi, dueDate, tenure = "") {
   });
 
   saveData();
+
   renderLoans();
-  showToast("Loan / EMI added");
+
+  showToast(
+    "Loan / EMI added"
+  );
 }
 
 function payEMI(loanId) {
-  const loan = data.loans.find(x => x.id === loanId);
+  const loan =
+    data.loans.find(
+      x => x.id === loanId
+    );
 
   if (!loan) return;
 
   loan.paidEmis++;
 
   saveData();
+
   renderLoans();
-  showToast("EMI marked paid");
+
+  showToast(
+    "EMI marked paid"
+  );
 }
 
-function deleteLoan(loanId) {
-  data.loans = data.loans.filter(
-    x => x.id !== loanId
-  );
+function deleteLoan(
+  loanId
+) {
+  data.loans =
+    data.loans.filter(
+      x => x.id !== loanId
+    );
 
   saveData();
+
   renderLoans();
+
+  showToast(
+    "Loan deleted"
+  );
 }
 
 window.addLoan = addLoan;
 window.payEMI = payEMI;
-window.deleteLoan = deleteLoan;
+window.deleteLoan =
+  deleteLoan;
 
 /* =========================================================
    DASHBOARD
 ========================================================= */
 
 function getTotals() {
-  const income = data.transactions
-    .filter(x => x.type === "income")
-    .reduce((sum, x) => sum + Number(x.amount), 0);
+  const income =
+    data.transactions
+      .filter(
+        x => x.type === "income"
+      )
+      .reduce(
+        (sum, x) =>
+          sum + Number(x.amount),
+        0
+      );
 
-  const expense = data.transactions
-    .filter(x => x.type === "expense")
-    .reduce((sum, x) => sum + Number(x.amount), 0);
+  const expense =
+    data.transactions
+      .filter(
+        x => x.type === "expense"
+      )
+      .reduce(
+        (sum, x) =>
+          sum + Number(x.amount),
+        0
+      );
 
-  const given = data.lendings
-    .filter(x => x.type === "given" && x.status === "pending")
-    .reduce((sum, x) => sum + Number(x.amount), 0);
+  const given =
+    data.lendings
+      .filter(
+        x =>
+          x.type === "given" &&
+          x.status === "pending"
+      )
+      .reduce(
+        (sum, x) =>
+          sum + Number(x.amount),
+        0
+      );
 
-  const received = data.lendings
-    .filter(x => x.type === "received" && x.status === "pending")
-    .reduce((sum, x) => sum + Number(x.amount), 0);
+  const received =
+    data.lendings
+      .filter(
+        x =>
+          x.type === "received" &&
+          x.status === "pending"
+      )
+      .reduce(
+        (sum, x) =>
+          sum + Number(x.amount),
+        0
+      );
 
   return {
     income,
     expense,
-    balance: income - expense,
+    balance:
+      income - expense,
     given,
     received,
-    lendingBalance: given - received
+    lendingBalance:
+      given - received
   };
 }
 
 function updateDashboard() {
-  const totals = getTotals();
+  const totals =
+    getTotals();
 
-  setText("totalIncome", money(totals.income));
-  setText("totalExpense", money(totals.expense));
-  setText("totalBalance", money(totals.balance));
-  setText("moneyGiven", money(totals.given));
-  setText("moneyReceived", money(totals.received));
-  setText("netLendingBalance", money(totals.lendingBalance));
-
-  const goalSaved = data.goals.reduce(
-    (sum, goal) => sum + Number(goal.saved),
-    0
+  setText(
+    "totalIncome",
+    money(totals.income)
   );
 
-  setText("totalGoalSavings", money(goalSaved));
-}
+  setText(
+    "totalExpense",
+    money(totals.expense)
+  );
 
-function setText(elementId, value) {
-  const element = getEl(elementId);
+  setText(
+    "totalBalance",
+    money(totals.balance)
+  );
 
-  if (element) {
-    element.textContent = value;
-  }
+  setText(
+    "moneyGiven",
+    money(totals.given)
+  );
+
+  setText(
+    "moneyReceived",
+    money(totals.received)
+  );
+
+  setText(
+    "netLendingBalance",
+    money(
+      totals.lendingBalance
+    )
+  );
+
+  setText(
+    "receivable",
+    money(totals.given)
+  );
+
+  setText(
+    "payable",
+    money(totals.received)
+  );
+
+  const goalSaved =
+    data.goals.reduce(
+      (sum, goal) =>
+        sum + Number(goal.saved),
+      0
+    );
+
+  setText(
+    "totalGoalSavings",
+    money(goalSaved)
+  );
 }
 
 /* =========================================================
    RENDER TRANSACTIONS
 ========================================================= */
 
-function renderTransactions(containerId = "transactionList") {
-  const container = getEl(containerId);
+function renderTransactions(
+  containerId =
+    "transactionList"
+) {
+  const container =
+    getEl(containerId);
 
   if (!container) return;
 
-  if (!data.transactions.length) {
+  if (
+    !data.transactions.length
+  ) {
     container.innerHTML =
-      `<div class="empty-state">No transactions yet</div>`;
+      `<div class="empty-state">
+        No transactions yet
+      </div>`;
+
     return;
   }
 
-  const items = [...data.transactions]
-    .reverse()
-    .slice(0, 100);
+  const items =
+    [...data.transactions]
+      .reverse()
+      .slice(0, 100);
 
-  container.innerHTML = items.map(item => `
-    <div class="transaction-item">
-      <div>
-        <strong>${item.type === "income" ? "Income" : "Expense"}</strong>
-        <div>${safeText(item.note || "No note")}</div>
-        <small>${safeText(item.date)}</small>
-      </div>
+  container.innerHTML =
+    items.map(item => `
+      <div class="transaction-item">
 
-      <div>
-        <strong>
-          ${item.type === "income" ? "+" : "-"}${money(item.amount)}
-        </strong>
-        <button onclick="deleteTransaction('${item.id}')">
-          Delete
-        </button>
-      </div>
-    </div>
-  `).join("");
-}
-
-/* =========================================================
-   RENDER LENDINGS
-========================================================= */
-
-function renderLendings(containerId = "lendingList") {
-  const container = getEl(containerId);
-
-  if (!container) return;
-
-  if (!data.lendings.length) {
-    container.innerHTML =
-      `<div class="empty-state">No Paisa Len-Den records</div>`;
-    return;
-  }
-
-  container.innerHTML = [...data.lendings]
-    .reverse()
-    .map(item => `
-      <div class="lending-item">
         <div>
-          <strong>${safeText(item.person)}</strong>
+          <strong>
+            ${
+              item.type === "income"
+                ? "Income"
+                : "Expense"
+            }
+          </strong>
+
           <div>
-            ${item.type === "given"
-              ? "Money Given"
-              : "Money Received"}
+            ${safeText(
+              item.note ||
+              "No note"
+            )}
           </div>
-          <small>${safeText(item.date)}</small>
-          ${
-            item.dueDate
-              ? `<small>Due: ${safeText(item.dueDate)}</small>`
-              : ""
-          }
+
+          <small>
+            ${safeText(
+              item.date
+            )}
+          </small>
         </div>
 
         <div>
-          <strong>${money(item.amount)}</strong>
-          <div>${safeText(item.status)}</div>
+          <strong>
+            ${
+              item.type === "income"
+                ? "+"
+                : "-"
+            }${money(
+              item.amount
+            )}
+          </strong>
 
-          <button onclick="markLendingPaid('${item.id}')">
-            ${item.status === "paid" ? "Pending" : "Paid"}
-          </button>
-
-          <button onclick="deleteLending('${item.id}')">
+          <button
+            onclick="deleteTransaction('${item.id}')"
+          >
             Delete
           </button>
         </div>
+
       </div>
-    `)
-    .join("");
+    `).join("");
+}
+
+/* =========================================================
+   RENDER LENDING
+========================================================= */
+
+function renderLendings(
+  containerId =
+    "lendingList"
+) {
+  const container =
+    getEl(containerId);
+
+  if (!container) return;
+
+  if (
+    !data.lendings.length
+  ) {
+    container.innerHTML =
+      `<div class="empty-state">
+        No Paisa Len-Den records
+      </div>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    [...data.lendings]
+      .reverse()
+      .map(item => `
+        <div class="lending-item">
+
+          <div>
+            <strong>
+              ${safeText(
+                item.person
+              )}
+            </strong>
+
+            <div>
+              ${
+                item.type === "given"
+                  ? "Money Given"
+                  : "Money Received"
+              }
+            </div>
+
+            <small>
+              ${safeText(
+                item.date
+              )}
+            </small>
+
+            ${
+              item.dueDate
+                ? `
+                  <small>
+                    Due:
+                    ${safeText(
+                      item.dueDate
+                    )}
+                  </small>
+                `
+                : ""
+            }
+          </div>
+
+          <div>
+            <strong>
+              ${money(
+                item.amount
+              )}
+            </strong>
+
+            <div>
+              ${safeText(
+                item.status
+              )}
+            </div>
+
+            <button
+              onclick="markLendingPaid('${item.id}')"
+            >
+              ${
+                item.status === "paid"
+                  ? "Pending"
+                  : "Paid"
+              }
+            </button>
+
+            <button
+              onclick="deleteLending('${item.id}')"
+            >
+              Delete
+            </button>
+          </div>
+
+        </div>
+      `)
+      .join("");
 
   updateDashboard();
 }
@@ -557,198 +1028,366 @@ function renderLendings(containerId = "lendingList") {
    RENDER GOALS
 ========================================================= */
 
-function renderGoals(containerId = "goalList") {
-  const container = getEl(containerId);
+function renderGoals(
+  containerId =
+    "goalList"
+) {
+  const container =
+    getEl(containerId);
 
   if (!container) return;
 
   if (!data.goals.length) {
     container.innerHTML =
-      `<div class="empty-state">No goals created</div>`;
+      `<div class="empty-state">
+        No goals created
+      </div>`;
+
     return;
   }
 
-  container.innerHTML = data.goals.map(goal => {
-    const percentage = Math.min(
-      100,
-      Math.round((goal.saved / goal.target) * 100)
-    );
+  container.innerHTML =
+    data.goals
+      .map(goal => {
 
-    return `
-      <div class="goal-item">
-        <div>
-          <strong>${safeText(goal.name)}</strong>
-          <div>
-            ${money(goal.saved)} / ${money(goal.target)}
+        const percentage =
+          Math.min(
+            100,
+            Math.round(
+              (
+                Number(goal.saved) /
+                Number(goal.target)
+              ) * 100
+            )
+          );
+
+        return `
+          <div class="goal-item">
+
+            <div>
+              <strong>
+                ${safeText(
+                  goal.name
+                )}
+              </strong>
+
+              <div>
+                ${money(
+                  goal.saved
+                )}
+                /
+                ${money(
+                  goal.target
+                )}
+              </div>
+
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  style="width:${percentage}%"
+                ></div>
+              </div>
+
+              <small>
+                ${percentage}%
+                completed
+              </small>
+            </div>
+
+            <div>
+              <button
+                onclick="addGoalSaving('${goal.id}', 500)"
+              >
+                + ₹500
+              </button>
+
+              <button
+                onclick="deleteGoal('${goal.id}')"
+              >
+                Delete
+              </button>
+            </div>
+
           </div>
-
-          <div class="progress">
-            <div
-              class="progress-bar"
-              style="width:${percentage}%"
-            ></div>
-          </div>
-
-          <small>${percentage}% completed</small>
-        </div>
-
-        <div>
-          <button onclick="addGoalSaving('${goal.id}', 500)">
-            + ₹500
-          </button>
-
-          <button onclick="deleteGoal('${goal.id}')">
-            Delete
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
+        `;
+      })
+      .join("");
 }
 
 /* =========================================================
    RENDER BUDGET
 ========================================================= */
 
-function renderBudgets(containerId = "budgetList") {
-  const container = getEl(containerId);
+function renderBudgets(
+  containerId =
+    "budgetList"
+) {
+  const container =
+    getEl(containerId);
 
   if (!container) return;
 
   if (!data.budgets.length) {
     container.innerHTML =
-      `<div class="empty-state">No budgets created</div>`;
+      `<div class="empty-state">
+        No budgets created
+      </div>`;
+
     return;
   }
 
-  container.innerHTML = data.budgets.map(budget => {
+  container.innerHTML =
+    data.budgets
+      .map(budget => {
 
-    const spent = data.transactions
-      .filter(x =>
-        x.type === "expense" &&
-        x.date.slice(0, 7) === budget.month
-      )
-      .reduce((sum, x) => sum + Number(x.amount), 0);
+        const spent =
+          data.transactions
+            .filter(
+              x =>
+                x.type === "expense" &&
+                String(
+                  x.date
+                ).slice(0, 7) ===
+                  budget.month
+            )
+            .reduce(
+              (sum, x) =>
+                sum +
+                Number(
+                  x.amount
+                ),
+              0
+            );
 
-    const remaining = budget.amount - spent;
+        const remaining =
+          Number(
+            budget.amount
+          ) - spent;
 
-    return `
-      <div class="budget-item">
-        <strong>${safeText(budget.category)}</strong>
+        return `
+          <div class="budget-item">
 
-        <div>Budget: ${money(budget.amount)}</div>
-        <div>Spent: ${money(spent)}</div>
+            <strong>
+              ${safeText(
+                budget.category
+              )}
+            </strong>
 
-        <div>
-          Remaining:
-          <strong>${money(remaining)}</strong>
-        </div>
+            <div>
+              Budget:
+              ${money(
+                budget.amount
+              )}
+            </div>
 
-        <button onclick="deleteBudget('${budget.id}')">
-          Delete
-        </button>
-      </div>
-    `;
-  }).join("");
+            <div>
+              Spent:
+              ${money(spent)}
+            </div>
+
+            <div>
+              Remaining:
+              <strong>
+                ${money(
+                  remaining
+                )}
+              </strong>
+            </div>
+
+            <button
+              onclick="deleteBudget('${budget.id}')"
+            >
+              Delete
+            </button>
+
+          </div>
+        `;
+      })
+      .join("");
 }
 
 /* =========================================================
    RENDER BILLS
 ========================================================= */
 
-function renderBills(containerId = "billList") {
-  const container = getEl(containerId);
+function renderBills(
+  containerId =
+    "billList"
+) {
+  const container =
+    getEl(containerId);
 
   if (!container) return;
 
   if (!data.bills.length) {
     container.innerHTML =
-      `<div class="empty-state">No bills added</div>`;
+      `<div class="empty-state">
+        No bills added
+      </div>`;
+
     return;
   }
 
-  container.innerHTML = [...data.bills]
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-    .map(bill => `
-      <div class="bill-item">
-        <div>
-          <strong>${safeText(bill.name)}</strong>
-          <div>${money(bill.amount)}</div>
-          <small>Due: ${safeText(bill.dueDate)}</small>
+  container.innerHTML =
+    [...data.bills]
+      .sort(
+        (a, b) =>
+          String(
+            a.dueDate
+          ).localeCompare(
+            String(
+              b.dueDate
+            )
+          )
+      )
+      .map(bill => `
+        <div class="bill-item">
+
+          <div>
+            <strong>
+              ${safeText(
+                bill.name
+              )}
+            </strong>
+
+            <div>
+              ${money(
+                bill.amount
+              )}
+            </div>
+
+            <small>
+              Due:
+              ${safeText(
+                bill.dueDate
+              )}
+            </small>
+          </div>
+
+          <div>
+            <strong>
+              ${safeText(
+                bill.status
+              )}
+            </strong>
+
+            <button
+              onclick="markBillPaid('${bill.id}')"
+            >
+              ${
+                bill.status === "paid"
+                  ? "Pending"
+                  : "Paid"
+              }
+            </button>
+
+            <button
+              onclick="deleteBill('${bill.id}')"
+            >
+              Delete
+            </button>
+          </div>
+
         </div>
-
-        <div>
-          <strong>${safeText(bill.status)}</strong>
-
-          <button onclick="markBillPaid('${bill.id}')">
-            ${bill.status === "paid" ? "Pending" : "Paid"}
-          </button>
-
-          <button onclick="deleteBill('${bill.id}')">
-            Delete
-          </button>
-        </div>
-      </div>
-    `)
-    .join("");
+      `)
+      .join("");
 }
 
 /* =========================================================
    RENDER LOANS
 ========================================================= */
 
-function renderLoans(containerId = "loanList") {
-  const container = getEl(containerId);
+function renderLoans(
+  containerId =
+    "loanList"
+) {
+  const container =
+    getEl(containerId);
 
   if (!container) return;
 
   if (!data.loans.length) {
     container.innerHTML =
-      `<div class="empty-state">No loans / EMI added</div>`;
+      `<div class="empty-state">
+        No loans / EMI added
+      </div>`;
+
     return;
   }
 
-  container.innerHTML = data.loans.map(loan => `
-    <div class="loan-item">
-      <div>
-        <strong>${safeText(loan.name)}</strong>
+  container.innerHTML =
+    data.loans
+      .map(loan => `
+        <div class="loan-item">
 
-        <div>
-          ${safeText(loan.lender || "Bank / Finance")}
+          <div>
+            <strong>
+              ${safeText(
+                loan.name
+              )}
+            </strong>
+
+            <div>
+              ${safeText(
+                loan.lender ||
+                "Bank / Finance"
+              )}
+            </div>
+
+            <div>
+              Loan:
+              ${money(
+                loan.amount
+              )}
+            </div>
+
+            <div>
+              EMI:
+              ${money(
+                loan.emi
+              )}
+            </div>
+
+            <small>
+              Paid EMIs:
+              ${Number(
+                loan.paidEmis || 0
+              )}
+            </small>
+          </div>
+
+          <div>
+            <button
+              onclick="payEMI('${loan.id}')"
+            >
+              Pay EMI
+            </button>
+
+            <button
+              onclick="deleteLoan('${loan.id}')"
+            >
+              Delete
+            </button>
+          </div>
+
         </div>
-
-        <div>
-          Loan: ${money(loan.amount)}
-        </div>
-
-        <div>
-          EMI: ${money(loan.emi)}
-        </div>
-
-        <small>
-          Paid EMIs: ${loan.paidEmis}
-        </small>
-      </div>
-
-      <div>
-        <button onclick="payEMI('${loan.id}')">
-          Pay EMI
-        </button>
-
-        <button onclick="deleteLoan('${loan.id}')">
-          Delete
-        </button>
-      </div>
-    </div>
-  `).join("");
+      `)
+      .join("");
 }
 
 /* =========================================================
    SEARCH
 ========================================================= */
 
-function searchHisab(query) {
-  query = String(query || "").toLowerCase().trim();
+function searchHisab(
+  query
+) {
+  query =
+    String(
+      query || ""
+    )
+      .toLowerCase()
+      .trim();
 
   if (!query) {
     renderTransactions();
@@ -756,189 +1395,368 @@ function searchHisab(query) {
     return;
   }
 
-  const transactionResults = data.transactions.filter(item =>
-    `${item.type} ${item.note} ${item.date}`
-      .toLowerCase()
-      .includes(query)
-  );
+  const transactionResults =
+    data.transactions.filter(
+      item =>
+        `${item.type} ${item.note} ${item.date}`
+          .toLowerCase()
+          .includes(query)
+    );
 
-  const lendingResults = data.lendings.filter(item =>
-    `${item.person} ${item.type} ${item.note} ${item.date}`
-      .toLowerCase()
-      .includes(query)
-  );
+  const lendingResults =
+    data.lendings.filter(
+      item =>
+        `${item.person} ${item.type} ${item.note} ${item.date}`
+          .toLowerCase()
+          .includes(query)
+    );
 
-  const transactionContainer = getEl("transactionList");
+  const transactionContainer =
+    getEl(
+      "transactionList"
+    );
 
   if (transactionContainer) {
     transactionContainer.innerHTML =
-      transactionResults.map(item => `
-        <div class="transaction-item">
-          <strong>${safeText(item.note || item.type)}</strong>
-          <span>${money(item.amount)}</span>
-        </div>
-      `).join("") ||
-      `<div class="empty-state">No result found</div>`;
+      transactionResults
+        .map(item => `
+          <div class="transaction-item">
+
+            <strong>
+              ${safeText(
+                item.note ||
+                item.type
+              )}
+            </strong>
+
+            <span>
+              ${money(
+                item.amount
+              )}
+            </span>
+
+          </div>
+        `)
+        .join("") ||
+      `<div class="empty-state">
+        No result found
+      </div>`;
   }
 
-  const lendingContainer = getEl("lendingList");
+  const lendingContainer =
+    getEl(
+      "lendingList"
+    );
 
   if (lendingContainer) {
     lendingContainer.innerHTML =
-      lendingResults.map(item => `
-        <div class="lending-item">
-          <strong>${safeText(item.person)}</strong>
-          <span>${money(item.amount)}</span>
-        </div>
-      `).join("") ||
-      `<div class="empty-state">No result found</div>`;
+      lendingResults
+        .map(item => `
+          <div class="lending-item">
+
+            <strong>
+              ${safeText(
+                item.person
+              )}
+            </strong>
+
+            <span>
+              ${money(
+                item.amount
+              )}
+            </span>
+
+          </div>
+        `)
+        .join("") ||
+      `<div class="empty-state">
+        No result found
+      </div>`;
   }
 }
 
-window.searchHisab = searchHisab;
+window.searchHisab =
+  searchHisab;
 
 /* =========================================================
    REPORT
 ========================================================= */
 
 function getReport() {
-  const totals = getTotals();
+  const totals =
+    getTotals();
 
   return {
-    totalIncome: totals.income,
-    totalExpense: totals.expense,
-    balance: totals.balance,
-    moneyGiven: totals.given,
-    moneyReceived: totals.received,
-    goals: data.goals.length,
-    bills: data.bills.length,
-    loans: data.loans.length,
-    transactions: data.transactions.length
+    totalIncome:
+      totals.income,
+
+    totalExpense:
+      totals.expense,
+
+    balance:
+      totals.balance,
+
+    moneyGiven:
+      totals.given,
+
+    moneyReceived:
+      totals.received,
+
+    goals:
+      data.goals.length,
+
+    bills:
+      data.bills.length,
+
+    loans:
+      data.loans.length,
+
+    transactions:
+      data.transactions.length
   };
 }
 
-window.getReport = getReport;
+window.getReport =
+  getReport;
 
 /* =========================================================
    BACKUP
 ========================================================= */
 
 function exportBackup() {
-  const backup = JSON.stringify(data, null, 2);
+  const backup =
+    JSON.stringify(
+      data,
+      null,
+      2
+    );
 
-  const blob = new Blob(
-    [backup],
-    { type: "application/json" }
-  );
+  const blob =
+    new Blob(
+      [backup],
+      {
+        type:
+          "application/json"
+      }
+    );
 
-  const url = URL.createObjectURL(blob);
+  const url =
+    URL.createObjectURL(
+      blob
+    );
 
-  const a = document.createElement("a");
+  const a =
+    document.createElement(
+      "a"
+    );
 
   a.href = url;
+
   a.download =
     `HISAB-Backup-${today()}.json`;
 
   a.click();
 
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(
+    url
+  );
 
-  showToast("Backup exported");
+  showToast(
+    "Backup exported"
+  );
 }
 
-function importBackup(file) {
+function importBackup(
+  file
+) {
   if (!file) return;
 
-  const reader = new FileReader();
+  const reader =
+    new FileReader();
 
-  reader.onload = event => {
-    try {
-      const imported =
-        JSON.parse(event.target.result);
+  reader.onload =
+    event => {
+      try {
+        const imported =
+          JSON.parse(
+            event.target.result
+          );
 
-      if (!imported.transactions) {
-        throw new Error("Invalid backup");
+        if (
+          !imported.transactions
+        ) {
+          throw new Error(
+            "Invalid backup"
+          );
+        }
+
+        data = {
+          ...structuredClone(
+            defaultData
+          ),
+
+          ...imported,
+
+          settings: {
+            ...structuredClone(
+              defaultData.settings
+            ),
+
+            ...(imported.settings ||
+              {})
+          }
+        };
+
+        saveData();
+
+        renderAll();
+
+        showToast(
+          "Backup restored"
+        );
+
+      } catch (error) {
+        showToast(
+          "Invalid backup file"
+        );
       }
-
-      data = {
-        ...defaultData,
-        ...imported
-      };
-
-      saveData();
-
-      renderAll();
-
-      showToast("Backup restored");
-    } catch (error) {
-      showToast("Invalid backup file");
-    }
-  };
+    };
 
   reader.readAsText(file);
 }
 
-window.exportBackup = exportBackup;
-window.importBackup = importBackup;
+window.exportBackup =
+  exportBackup;
+
+window.importBackup =
+  importBackup;
 
 /* =========================================================
    RESET
 ========================================================= */
 
 function resetHisabData() {
-  const confirmed = confirm(
-    "All HISAB data will be deleted. Continue?"
+  const confirmed =
+    confirm(
+      "All HISAB data will be deleted. Continue?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  localStorage.removeItem(
+    HISAB_KEY
   );
 
-  if (!confirmed) return;
+  localStorage.removeItem(
+    "hisab_guest_mode"
+  );
 
-  localStorage.removeItem(HISAB_KEY);
-
-  data = structuredClone(defaultData);
+  data =
+    structuredClone(
+      defaultData
+    );
 
   renderAll();
 
-  showToast("All data cleared");
+  showToast(
+    "All data cleared"
+  );
 }
 
-window.resetHisabData = resetHisabData;
+window.resetHisabData =
+  resetHisabData;
 
 /* =========================================================
    TOAST
 ========================================================= */
 
-function showToast(message) {
-  let toast = getEl("hisabToast");
+function showToast(
+  message
+) {
+  let toast =
+    getEl(
+      "hisabToast"
+    );
 
   if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "hisabToast";
+    toast =
+      document.createElement(
+        "div"
+      );
 
-    toast.style.position = "fixed";
-    toast.style.left = "50%";
-    toast.style.bottom = "25px";
-    toast.style.transform = "translateX(-50%)";
-    toast.style.padding = "12px 18px";
-    toast.style.borderRadius = "12px";
-    toast.style.background = "#111827";
-    toast.style.color = "#fff";
-    toast.style.zIndex = "99999";
-    toast.style.fontSize = "14px";
+    toast.id =
+      "hisabToast";
 
-    document.body.appendChild(toast);
+    Object.assign(
+      toast.style,
+      {
+        position:
+          "fixed",
+
+        left:
+          "50%",
+
+        bottom:
+          "25px",
+
+        transform:
+          "translateX(-50%)",
+
+        padding:
+          "12px 18px",
+
+        borderRadius:
+          "12px",
+
+        background:
+          "#111827",
+
+        color:
+          "#fff",
+
+        zIndex:
+          "99999",
+
+        fontSize:
+          "14px",
+
+        maxWidth:
+          "90%",
+
+        textAlign:
+          "center"
+      }
+    );
+
+    document.body.appendChild(
+      toast
+    );
   }
 
-  toast.textContent = message;
-  toast.style.display = "block";
+  toast.textContent =
+    message;
 
-  clearTimeout(window.hisabToastTimer);
+  toast.style.display =
+    "block";
 
-  window.hisabToastTimer = setTimeout(() => {
-    toast.style.display = "none";
-  }, 2200);
+  clearTimeout(
+    window.hisabToastTimer
+  );
+
+  window.hisabToastTimer =
+    setTimeout(
+      () => {
+        toast.style.display =
+          "none";
+      },
+      2200
+    );
 }
 
-window.showToast = showToast;
+window.showToast =
+  showToast;
 
 /* =========================================================
    RENDER ALL
@@ -946,93 +1764,170 @@ window.showToast = showToast;
 
 function renderAll() {
   updateDashboard();
+
   renderTransactions();
+
   renderLendings();
+
   renderGoals();
+
   renderBudgets();
+
   renderBills();
+
   renderLoans();
 
-  document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.classList.toggle(
-      "active",
-      btn.dataset.mode === data.mode
-    );
-  });
+  document
+    .querySelectorAll(
+      ".mode-btn"
+    )
+    .forEach(btn => {
+      btn.classList.toggle(
+        "active",
+        btn.dataset.mode ===
+          data.mode
+      );
+    });
 }
 
 /* =========================================================
    BUTTON / FORM AUTO HANDLER
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-  renderAll();
+    restoreGuestMode();
 
-  /* Income form */
-  const incomeForm = getEl("incomeForm");
+    renderAll();
 
-  if (incomeForm) {
-    incomeForm.addEventListener("submit", e => {
-      e.preventDefault();
+    const incomeForm =
+      getEl(
+        "incomeForm"
+      );
 
-      const amount =
-        incomeForm.querySelector("[name='amount']")?.value;
+    if (incomeForm) {
 
-      const note =
-        incomeForm.querySelector("[name='note']")?.value || "";
+      incomeForm.addEventListener(
+        "submit",
+        e => {
 
-      const date =
-        incomeForm.querySelector("[name='date']")?.value || today();
+          e.preventDefault();
 
-      addIncome(amount, note, date);
+          const amount =
+            incomeForm
+              .querySelector(
+                "[name='amount']"
+              )
+              ?.value;
 
-      incomeForm.reset();
-    });
+          const note =
+            incomeForm
+              .querySelector(
+                "[name='note']"
+              )
+              ?.value || "";
+
+          const date =
+            incomeForm
+              .querySelector(
+                "[name='date']"
+              )
+              ?.value ||
+            today();
+
+          addIncome(
+            amount,
+            note,
+            date
+          );
+
+          incomeForm.reset();
+        }
+      );
+    }
+
+    const expenseForm =
+      getEl(
+        "expenseForm"
+      );
+
+    if (expenseForm) {
+
+      expenseForm.addEventListener(
+        "submit",
+        e => {
+
+          e.preventDefault();
+
+          const amount =
+            expenseForm
+              .querySelector(
+                "[name='amount']"
+              )
+              ?.value;
+
+          const note =
+            expenseForm
+              .querySelector(
+                "[name='note']"
+              )
+              ?.value || "";
+
+          const date =
+            expenseForm
+              .querySelector(
+                "[name='date']"
+              )
+              ?.value ||
+            today();
+
+          addExpense(
+            amount,
+            note,
+            date
+          );
+
+          expenseForm.reset();
+        }
+      );
+    }
+
+    const searchInput =
+      getEl(
+        "hisabSearch"
+      );
+
+    if (searchInput) {
+
+      searchInput.addEventListener(
+        "input",
+        e => {
+          searchHisab(
+            e.target.value
+          );
+        }
+      );
+    }
+
   }
-
-  /* Expense form */
-  const expenseForm = getEl("expenseForm");
-
-  if (expenseForm) {
-    expenseForm.addEventListener("submit", e => {
-      e.preventDefault();
-
-      const amount =
-        expenseForm.querySelector("[name='amount']")?.value;
-
-      const note =
-        expenseForm.querySelector("[name='note']")?.value || "";
-
-      const date =
-        expenseForm.querySelector("[name='date']")?.value || today();
-
-      addExpense(amount, note, date);
-
-      expenseForm.reset();
-    });
-  }
-
-  /* Search */
-  const searchInput = getEl("hisabSearch");
-
-  if (searchInput) {
-    searchInput.addEventListener("input", e => {
-      searchHisab(e.target.value);
-    });
-  }
-});
+);
 
 /* =========================================================
    GLOBAL ACCESS
 ========================================================= */
 
 window.HISAB = {
-  getData: () => data,
 
-  save: saveData,
+  getData:
+    () => data,
 
-  totals: getTotals,
+  save:
+    saveData,
+
+  totals:
+    getTotals,
 
   addTransaction,
 
@@ -1048,5 +1943,6 @@ window.HISAB = {
 
   exportBackup,
 
-  reset: resetHisabData
+  reset:
+    resetHisabData
 };
